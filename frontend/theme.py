@@ -213,6 +213,8 @@ footer {{
 [data-testid="stSidebarCollapseButton"] button {{
     border-radius: 10px !important;
     color: var(--cp-muted) !important;
+    background: transparent !important;
+    border: none !important;
     transition: color 160ms ease, background-color 160ms ease !important;
 }}
 [data-testid="stSidebarCollapseButton"] button:hover {{
@@ -220,9 +222,12 @@ footer {{
     background: var(--cp-surface-2) !important;
 }}
 
-/* Typography */
+/* Typography & Inline Code / Pre blocks (both Dark and Light themes) */
+.stApp p, .stApp li, .stApp label, .stApp span:not([data-testid="stIconMaterial"]) {{
+    color: inherit;
+}}
 .stApp p, .stApp li {{
-    color: var(--cp-text);
+    color: var(--cp-text) !important;
     font-size: 15px;
     line-height: 1.6;
 }}
@@ -237,13 +242,34 @@ footer {{
     font-size: 13px !important;
     line-height: 1.45 !important;
 }}
-.stApp code, .stApp pre {{
+.stApp code,
+[data-testid="stMarkdownContainer"] code {{
     font-family: var(--cp-font-mono) !important;
-}}
-.stApp pre {{
     background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
+    color: var(--cp-text) !important;
+    border: 1px solid var(--cp-border) !important;
+    border-radius: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 12.5px !important;
+}}
+.stApp pre,
+[data-testid="stMarkdownContainer"] pre,
+[data-testid="stCode"] pre {{
+    font-family: var(--cp-font-mono) !important;
+    background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
+    color: var(--cp-text) !important;
     border: 1px solid var(--cp-border) !important;
     border-radius: 10px !important;
+}}
+.stApp pre code,
+[data-testid="stMarkdownContainer"] pre code,
+[data-testid="stCode"] pre code {{
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: var(--cp-text) !important;
 }}
 
 /* Tables in markdown */
@@ -257,6 +283,7 @@ footer {{
     border: 1px solid var(--cp-border) !important;
     padding: 8px 12px !important;
     text-align: left;
+    color: var(--cp-text) !important;
 }}
 .stApp th {{
     background: var(--cp-surface-2) !important;
@@ -336,35 +363,71 @@ footer {{
     flex-shrink: 0;
 }}
 
-/* Buttons (radius 10px, subtle hover & active scale) */
-.stButton > button,
-[data-testid="stLinkButton"] > a {{
+/* Buttons (Main, Sidebar, and Dialogs) — use descendant 'button' so stTooltipHoverTarget never breaks styling */
+.stButton button,
+[data-testid="stSidebar"] .stButton button,
+[data-testid="stBaseButton-secondary"],
+[data-testid="stBaseButton-secondaryFormSubmit"],
+[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"],
+[data-testid="stFormSubmitButton"] button,
+[data-testid="stLinkButton"] a {{
     background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
     color: var(--cp-text) !important;
     border: 1px solid var(--cp-border) !important;
     border-radius: 10px !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
     font-weight: 500 !important;
-    padding: 6px 12px !important;
-    min-height: 36px !important;
+    padding: 5px 10px !important;
+    min-height: 34px !important;
     box-shadow: none !important;
     transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 150ms ease !important;
 }}
-.stButton > button:hover,
-[data-testid="stLinkButton"] > a:hover {{
+.stButton button p,
+[data-testid="stSidebar"] .stButton button p,
+[data-testid="stFormSubmitButton"] button p,
+[data-testid="stLinkButton"] a p {{
+    color: var(--cp-text) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}}
+.stButton button:hover,
+[data-testid="stSidebar"] .stButton button:hover,
+[data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stBaseButton-secondaryFormSubmit"]:hover,
+[data-testid="stFormSubmitButton"] button:hover,
+[data-testid="stLinkButton"] a:hover {{
     border-color: var(--cp-accent) !important;
     background: var(--cp-surface) !important;
+    background-color: var(--cp-surface) !important;
     color: var(--cp-text) !important;
     transform: translateY(-1px);
 }}
-.stButton > button:active {{
+.stButton button:active,
+[data-testid="stSidebar"] .stButton button:active {{
     transform: scale(0.98);
 }}
-.stButton > button:focus-visible,
-[data-testid="stLinkButton"] > a:focus-visible {{
+.stButton button:focus-visible,
+[data-testid="stLinkButton"] a:focus-visible {{
     outline: none !important;
     border-color: var(--cp-accent) !important;
     box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
+}}
+
+/* Compact 3-column deadline action buttons so 'Удалить' never truncates */
+[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {{
+    gap: 6px !important;
+}}
+[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] .stButton button {{
+    padding: 3px 4px !important;
+    min-height: 30px !important;
+    font-size: 12px !important;
+}}
+[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] .stButton button p {{
+    font-size: 12px !important;
+    letter-spacing: -0.01em !important;
 }}
 
 /* Circular '+' button in Deadlines header */
@@ -373,13 +436,15 @@ footer {{
     justify-content: flex-end !important;
     align-items: center !important;
 }}
-.st-key-plus_action_btn button {{
+.st-key-plus_action_btn button,
+[data-testid="stSidebar"] .st-key-plus_action_btn button {{
     width: 34px !important;
     height: 34px !important;
     min-height: 34px !important;
     padding: 0 !important;
     border-radius: 999px !important;
     background: var(--cp-accent) !important;
+    background-color: var(--cp-accent) !important;
     color: #FFFFFF !important;
     border: none !important;
     display: inline-flex !important;
@@ -393,7 +458,10 @@ footer {{
     color: #FFFFFF !important;
     font-size: 18px !important;
 }}
-.st-key-plus_action_btn button:hover {{
+.st-key-plus_action_btn button:hover,
+[data-testid="stSidebar"] .st-key-plus_action_btn button:hover {{
+    background: var(--cp-accent) !important;
+    background-color: var(--cp-accent) !important;
     opacity: 0.92 !important;
     transform: scale(1.05);
     box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
@@ -403,39 +471,134 @@ footer {{
 }}
 
 /* 40x40px Theme toggle button at bottom of sidebar */
-.st-key-theme_btn button {{
+.st-key-theme_btn button,
+[data-testid="stSidebar"] .st-key-theme_btn button {{
     width: 40px !important;
     height: 40px !important;
     min-height: 40px !important;
     padding: 0 !important;
     border-radius: 10px !important;
     background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
     color: var(--cp-text) !important;
     border: 1px solid var(--cp-border) !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
 }}
-.st-key-theme_btn button:hover {{
+.st-key-theme_btn button:hover,
+[data-testid="stSidebar"] .st-key-theme_btn button:hover {{
     border-color: var(--cp-accent) !important;
     color: var(--cp-accent) !important;
 }}
 
-/* Inputs inside sidebar / dialogs */
+/* Modal Dialogs (st.dialog), Popovers, Tooltips, Select Dropdowns, and Calendar Datepicker in Portal */
+[role="dialog"],
+[role="dialog"] > div,
+[data-testid="stModal"] [role="dialog"],
+[data-testid="stDialog"],
+[data-testid="stDialog"] > div,
+[data-baseweb="modal"] > div {{
+    background: var(--cp-surface) !important;
+    background-color: var(--cp-surface) !important;
+    color: var(--cp-text) !important;
+    border: 1px solid var(--cp-border) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--cp-float-shadow) !important;
+}}
+[role="dialog"] h1,
+[role="dialog"] h2,
+[role="dialog"] h3,
+[role="dialog"] p,
+[role="dialog"] label,
+[role="dialog"] div,
+[role="dialog"] span:not([data-testid="stIconMaterial"]),
+[data-testid="stDialog"] h1,
+[data-testid="stDialog"] h2,
+[data-testid="stDialog"] p,
+[data-testid="stDialog"] label {{
+    color: var(--cp-text) !important;
+}}
+[role="dialog"] button[aria-label="Close"],
+[data-testid="stDialog"] button[aria-label="Close"] {{
+    color: var(--cp-muted) !important;
+    background: transparent !important;
+}}
+[data-testid="stForm"] {{
+    background: var(--cp-surface) !important;
+    border: 1px solid var(--cp-border) !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+}}
+
+/* Inputs inside sidebar & dialogs */
 .stTextInput input,
 .stTextArea textarea,
 .stDateInput input,
-[data-baseweb="select"] > div {{
+[data-testid="stDateInput"] input,
+[data-baseweb="input"],
+[data-baseweb="input"] > div,
+[data-baseweb="base-input"],
+[data-baseweb="select"] > div,
+[data-baseweb="select"] div {{
     background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
     color: var(--cp-text) !important;
-    border: 1px solid var(--cp-border) !important;
+    border-color: var(--cp-border) !important;
     border-radius: 10px !important;
     font-size: 14px !important;
 }}
 .stTextInput input:focus,
-.stTextArea textarea:focus {{
+.stTextArea textarea:focus,
+.stDateInput input:focus {{
     border-color: var(--cp-accent) !important;
     box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
+}}
+
+/* Calendar, Tooltip & Select Popovers attached to body portal */
+[data-baseweb="popover"],
+[data-baseweb="popover"] > div,
+[data-baseweb="popover"] > div > div,
+[data-baseweb="tooltip"],
+[data-baseweb="tooltip"] > div,
+[data-baseweb="calendar"],
+[data-baseweb="calendar"] > div,
+[data-baseweb="calendar"] [role="grid"],
+[data-baseweb="calendar"] [data-baseweb="month"],
+[data-baseweb="menu"],
+[data-baseweb="menu"] ul,
+[role="listbox"] {{
+    background: var(--cp-surface) !important;
+    background-color: var(--cp-surface) !important;
+    color: var(--cp-text) !important;
+    border: 1px solid var(--cp-border) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--cp-float-shadow) !important;
+}}
+[data-baseweb="calendar"] *,
+[data-baseweb="tooltip"] *,
+[data-baseweb="menu"] li,
+[data-baseweb="menu"] li *,
+[role="option"],
+[role="option"] * {{
+    color: var(--cp-text) !important;
+}}
+[data-baseweb="calendar"] button,
+[data-baseweb="calendar"] select,
+[data-baseweb="calendar"] div {{
+    background-color: transparent !important;
+}}
+[data-baseweb="calendar"] [aria-selected="true"],
+[data-baseweb="calendar"] [aria-selected="true"] * {{
+    background: var(--cp-accent) !important;
+    background-color: var(--cp-accent) !important;
+    color: #FFFFFF !important;
+    border-radius: 8px !important;
+}}
+[data-baseweb="menu"] li:hover,
+[role="option"]:hover {{
+    background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
 }}
 
 /* Expanders & Campus map iframe */
@@ -450,6 +613,9 @@ footer {{
     color: var(--cp-text) !important;
     font-weight: 500 !important;
     padding: 10px 14px !important;
+}}
+[data-testid="stExpander"] summary p {{
+    color: var(--cp-text) !important;
 }}
 [data-testid="stExpander"] summary:hover {{
     color: var(--cp-accent) !important;
@@ -476,11 +642,14 @@ iframe {{
     height: 30px;
     border-radius: 8px;
     background: var(--cp-accent-soft);
-    color: var(--cp-accent);
+    color: var(--cp-accent) !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}}
+.cp-brand-icon svg {{
+    stroke: var(--cp-accent) !important;
 }}
 .cp-status-row {{
     display: flex;
@@ -626,11 +795,6 @@ iframe {{
     border: 1px solid var(--cp-border);
 }}
 
-/* Compact deadline action buttons row */
-.dl-actions-note {{
-    margin-top: 2px;
-}}
-
 /* Empty Chat Hero State */
 .hero-box {{
     text-align: center;
@@ -684,11 +848,11 @@ iframe {{
 }}
 .mode-pill.mode-live {{
     background: var(--cp-live-bg);
-    color: var(--cp-live-fg);
+    color: var(--cp-live-fg) !important;
 }}
 .mode-pill.mode-demo {{
     background: var(--cp-demo-bg);
-    color: var(--cp-demo-fg);
+    color: var(--cp-demo-fg) !important;
 }}
 
 /* Agent trace step cards */
@@ -804,10 +968,7 @@ iframe {{
     }}
 }}
 </style>"""
-    if hasattr(st, "html"):
-        st.html(css)
-    else:
-        st.markdown(css, unsafe_allow_html=True)
+    st.markdown(css, unsafe_allow_html=True)
 
 
 apply_theme = inject_theme

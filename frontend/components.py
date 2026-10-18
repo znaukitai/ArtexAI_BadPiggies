@@ -274,7 +274,12 @@ _STEP_TYPE_ICONS = {
 
 def render_response(response: dict[str, Any]) -> None:
     """Render assistant message and collapsible execution trace with LIVE/DEMO badges."""
-    st.markdown(response.get("answer", ""))
+    raw_answer = str(response.get("answer", ""))
+    formatted_answer = (
+        raw_answer.replace("`[DEMO]`", format_badge_html("demo"))
+        .replace("`[LIVE]`", format_badge_html("live"))
+    )
+    st.markdown(formatted_answer, unsafe_allow_html=True)
 
     steps = response.get("steps") or []
     meta = response.get("meta") or {}

@@ -54,10 +54,7 @@ inject_theme(st.session_state.theme)
 
 def _render_sidebar_html(markup: str) -> None:
     clean = " ".join(line.strip() for line in markup.splitlines() if line.strip())
-    if hasattr(st, "html"):
-        st.html(clean)
-    else:
-        st.markdown(clean, unsafe_allow_html=True)
+    st.markdown(clean, unsafe_allow_html=True)
 
 
 with st.sidebar:
