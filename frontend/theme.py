@@ -531,72 +531,168 @@ footer {{
     padding: 16px !important;
 }}
 
-/* Inputs inside sidebar & dialogs */
-.stTextInput input,
-.stTextArea textarea,
-.stDateInput input,
-[data-testid="stDateInput"] input,
+/* Inputs, Radio, DateInput, Selectbox inside sidebar & dialogs (Streamlit 1.66 React Aria & BaseWeb) */
+[data-testid="stTextInputRootElement"],
+[data-testid="stTextAreaRootElement"],
+.stTextInput > div > div,
+.stTextArea > div > div,
 [data-baseweb="input"],
 [data-baseweb="input"] > div,
-[data-baseweb="base-input"],
-[data-baseweb="select"] > div,
-[data-baseweb="select"] div {{
+[data-baseweb="base-input"] {{
     background: var(--cp-surface-2) !important;
     background-color: var(--cp-surface-2) !important;
     color: var(--cp-text) !important;
-    border-color: var(--cp-border) !important;
+    border: 1px solid var(--cp-border) !important;
     border-radius: 10px !important;
+}}
+.stTextInput input,
+.stTextArea textarea {{
+    background: transparent !important;
+    background-color: transparent !important;
+    color: var(--cp-text) !important;
     font-size: 14px !important;
 }}
-.stTextInput input:focus,
-.stTextArea textarea:focus,
-.stDateInput input:focus {{
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder,
+[data-testid="stSelectbox"] input::placeholder {{
+    color: var(--cp-muted) !important;
+    opacity: 0.75 !important;
+}}
+[data-testid="stTextInputRootElement"]:focus-within,
+[data-testid="stTextAreaRootElement"]:focus-within,
+[data-baseweb="input"]:focus-within {{
     border-color: var(--cp-accent) !important;
     box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
 }}
 
-/* Calendar, Tooltip & Select Popovers attached to body portal */
+/* Radio buttons (stRadioOption) — no black circles in Light Mode */
+[data-testid="stRadioOption"] > div > div:first-child {{
+    background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
+    border: 1.5px solid var(--cp-border-strong) !important;
+}}
+[data-testid="stRadioOption"][data-hovered] > div > div:first-child {{
+    border-color: var(--cp-accent) !important;
+}}
+[data-testid="stRadioOption"][data-selected] > div > div:first-child {{
+    background: var(--cp-accent) !important;
+    background-color: var(--cp-accent) !important;
+    border-color: var(--cp-accent) !important;
+}}
+[data-testid="stRadioOption"][data-selected] > div > div:first-child > div {{
+    background: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+}}
+
+/* DateInput field & spinbutton segments (stDateInputField) */
+[data-testid="stDateInputField"] {{
+    background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
+    border: 1px solid var(--cp-border) !important;
+    border-radius: 10px !important;
+    color: var(--cp-text) !important;
+}}
+[data-testid="stDateInputField"]:focus-within {{
+    border-color: var(--cp-accent) !important;
+    box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
+}}
+[data-testid="stDateInputField"] [role="spinbutton"],
+[data-testid="stDateInputField"] [data-type="literal"],
+[data-testid="stDateInputCalendarButton"],
+[data-testid="stDateInputClearButton"] {{
+    color: var(--cp-text) !important;
+}}
+[data-testid="stDateInputField"] [role="spinbutton"][data-focused] {{
+    background: var(--cp-accent) !important;
+    background-color: var(--cp-accent) !important;
+    color: #FFFFFF !important;
+    border-radius: 4px !important;
+}}
+
+/* Selectbox field & Virtual Dropdown (stSelectbox / stSelectboxVirtualDropdown) */
+[data-testid="stSelectbox"] > div:nth-of-type(2) > div > div,
+[data-baseweb="select"] > div {{
+    background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
+    border: 1px solid var(--cp-border) !important;
+    border-radius: 10px !important;
+    color: var(--cp-text) !important;
+}}
+[data-testid="stSelectbox"] > div:nth-of-type(2) > div > div:focus-within {{
+    border-color: var(--cp-accent) !important;
+    box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
+}}
+[data-testid="stSelectbox"] input {{
+    color: var(--cp-text) !important;
+    background: transparent !important;
+}}
+[data-testid="stSelectbox"] button {{
+    color: var(--cp-muted) !important;
+    background: transparent !important;
+}}
+[data-testid="stSelectboxVirtualDropdown"] {{
+    background: var(--cp-surface) !important;
+    background-color: var(--cp-surface) !important;
+    border: 1px solid var(--cp-border) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--cp-float-shadow) !important;
+    color: var(--cp-text) !important;
+}}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+[data-testid="stSelectboxVirtualDropdown"] [role="option"] * {{
+    color: var(--cp-text) !important;
+}}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-hovered] [data-item-hl],
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-focused] [data-item-hl] {{
+    background: var(--cp-surface-2) !important;
+    background-color: var(--cp-surface-2) !important;
+}}
+
+/* Calendar Popup & Floating Overlay Portals (stDateInputCalendar) */
+[data-testid="stDateInputCalendar"],
+[data-testid="stDateInputHeaderPickerPopover"],
+[data-testid="stDateInputQuickSelectPopover"],
 [data-baseweb="popover"],
 [data-baseweb="popover"] > div,
-[data-baseweb="popover"] > div > div,
 [data-baseweb="tooltip"],
 [data-baseweb="tooltip"] > div,
 [data-baseweb="calendar"],
-[data-baseweb="calendar"] > div,
-[data-baseweb="calendar"] [role="grid"],
-[data-baseweb="calendar"] [data-baseweb="month"],
 [data-baseweb="menu"],
-[data-baseweb="menu"] ul,
 [role="listbox"] {{
     background: var(--cp-surface) !important;
     background-color: var(--cp-surface) !important;
     color: var(--cp-text) !important;
     border: 1px solid var(--cp-border) !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     box-shadow: var(--cp-float-shadow) !important;
 }}
-[data-baseweb="calendar"] *,
-[data-baseweb="tooltip"] *,
-[data-baseweb="menu"] li,
-[data-baseweb="menu"] li *,
-[role="option"],
-[role="option"] * {{
+[data-testid="stDateInputCalendar"] header button,
+[data-testid="stDateInputCalendar"] header button *,
+[data-testid="stDateInputCalendar"] th,
+[data-testid="stDateInputCalendar"] .react-aria-CalendarHeaderCell,
+[data-testid="stDateInputCalendar"] .react-aria-CalendarCell:not([data-selected]):not([data-outside-month]),
+[data-testid="stDateInputHeaderPickerPopover"] [role="option"],
+[data-testid="stDateInputQuickSelectPopover"] [role="option"],
+[data-baseweb="tooltip"] * {{
     color: var(--cp-text) !important;
 }}
-[data-baseweb="calendar"] button,
-[data-baseweb="calendar"] select,
-[data-baseweb="calendar"] div {{
-    background-color: transparent !important;
+[data-testid="stDateInputCalendar"] .react-aria-CalendarCell[data-outside-month] {{
+    color: var(--cp-muted) !important;
+    opacity: 0.45 !important;
 }}
-[data-baseweb="calendar"] [aria-selected="true"],
-[data-baseweb="calendar"] [aria-selected="true"] * {{
+[data-testid="stDateInputCalendar"] .react-aria-CalendarCell[data-selected] {{
     background: var(--cp-accent) !important;
     background-color: var(--cp-accent) !important;
     color: #FFFFFF !important;
     border-radius: 8px !important;
 }}
-[data-baseweb="menu"] li:hover,
-[role="option"]:hover {{
+[data-testid="stDateInputCalendar"] .react-aria-CalendarCell[data-today]:not([data-selected]) {{
+    text-decoration-color: var(--cp-accent) !important;
+    font-weight: 600 !important;
+}}
+[data-testid="stDateInputHeaderPickerPopover"] [role="option"][data-hovered],
+[data-testid="stDateInputHeaderPickerPopover"] [role="option"][data-focused],
+[data-testid="stDateInputHeaderPickerPopover"] [role="option"][data-selected] {{
     background: var(--cp-surface-2) !important;
     background-color: var(--cp-surface-2) !important;
 }}
