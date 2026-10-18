@@ -35,19 +35,41 @@ def test_get_today_envelope() -> None:
 
 
 def test_add_and_list_deadline() -> None:
+    from datetime import timedelta
+    from mcp_servers.academic_schedule import _now_almaty
+
+    due = (_now_almaty().date() + timedelta(days=3)).isoformat()
     res_add = add_deadline(
         course="CS405 Cloud Computing",
         title="Vertex AI Deployment Lab",
-        due_date="2026-10-21",
+        due_date=due,
         priority="critical",
     )
     assert res_add["ok"] is True
     assert res_add["data"]["added"]["course"] == "CS405 Cloud Computing"
+    assert res_add["data"]["added"]["source"] == "live"
 
     res_list = list_deadlines(days_ahead=60, course="CS405")
     assert res_list["ok"] is True
     assert res_list["data"]["count"] == 1
     assert res_list["data"]["deadlines"][0]["priority"] == "critical"
+    assert res_list["data"]["deadlines"][0]["source"] == "live"
+
+
+def test_default_demo_deadlines_relative_to_fixed_date_2026_10_30() -> None:
+    from datetime import date, datetime, timezone, timedelta
+
+    fixed_now = datetime(2026, 10, 30, 10, 0, 0, tzinfo=timezone(timedelta(hours=5)))
+    with patch("mcp_servers.academic_schedule._now_almaty", return_value=fixed_now):
+        reset_deadline_store(reference_date=date(2026, 10, 30))
+        res_list = list_deadlines(days_ahead=30)
+        assert res_list["ok"] is True
+        items = res_list["data"]["deadlines"]
+        assert len(items) == 3
+        for item in items:
+            assert item["days_left"] >= 0
+            assert item["urgency"] != "overdue"
+            assert item["source"] == "demo"
 
 
 def test_add_deadline_rejects_bad_date() -> None:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Literal, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -23,42 +23,60 @@ mcp = FastMCP("academic_schedule")
 
 ALMATY_TZ_NAME = "Asia/Almaty"
 
-_DEFAULT_DEADLINES: List[Dict[str, Any]] = [
-    {
-        "id": "dl-aitu-01",
-        "course": "AI & LLM Engineering",
-        "title": "Deploy Agent to Vertex AI Reasoning Engine",
-        "due_date": "2026-10-20",
-        "priority": "critical",
-        "status": "pending",
-    },
-    {
-        "id": "dl-aitu-02",
-        "course": "Distributed Systems",
-        "title": "Lab 4: gRPC & Raft Consensus",
-        "due_date": "2026-10-22",
-        "priority": "high",
-        "status": "pending",
-    },
-    {
-        "id": "dl-aitu-03",
-        "course": "Advanced Algorithms",
-        "title": "Dynamic Programming Problem Set",
-        "due_date": "2026-10-25",
-        "priority": "medium",
-        "status": "pending",
-    },
-]
 
-_DEADLINE_STORE: List[Dict[str, Any]] = [dict(item) for item in _DEFAULT_DEADLINES]
+def _now_almaty() -> datetime:
+    try:
+        tz = ZoneInfo(ALMATY_TZ_NAME)
+        return datetime.now(tz)
+    except ZoneInfoNotFoundError:
+        from datetime import timezone
+
+        return datetime.now(timezone(timedelta(hours=5)))
+
+
+def _build_default_deadlines(reference_date: Optional[date] = None) -> List[Dict[str, Any]]:
+    base = reference_date or _now_almaty().date()
+    return [
+        {
+            "id": "dl-aitu-01",
+            "course": "AI & LLM Engineering",
+            "title": "Deploy Agent to Vertex AI Reasoning Engine",
+            "due_date": (base + timedelta(days=2)).isoformat(),
+            "priority": "critical",
+            "status": "pending",
+            "source": "demo",
+        },
+        {
+            "id": "dl-aitu-02",
+            "course": "Distributed Systems",
+            "title": "Lab 4: gRPC & Raft Consensus",
+            "due_date": (base + timedelta(days=4)).isoformat(),
+            "priority": "high",
+            "status": "pending",
+            "source": "demo",
+        },
+        {
+            "id": "dl-aitu-03",
+            "course": "Advanced Algorithms",
+            "title": "Dynamic Programming Problem Set",
+            "due_date": (base + timedelta(days=7)).isoformat(),
+            "priority": "medium",
+            "status": "pending",
+            "source": "demo",
+        },
+    ]
+
+
+_DEFAULT_DEADLINES: List[Dict[str, Any]] = _build_default_deadlines()
+_DEADLINE_STORE: List[Dict[str, Any]] = _build_default_deadlines()
 
 
 def get_deadline_store() -> List[Dict[str, Any]]:
     return [dict(item) for item in _DEADLINE_STORE]
 
 
-def get_default_deadlines() -> List[Dict[str, Any]]:
-    return [dict(item) for item in _DEFAULT_DEADLINES]
+def get_default_deadlines(reference_date: Optional[date] = None) -> List[Dict[str, Any]]:
+    return _build_default_deadlines(reference_date=reference_date)
 
 
 def set_deadline_store(items: List[Dict[str, Any]]) -> None:
@@ -69,6 +87,7 @@ def set_deadline_store(items: List[Dict[str, Any]]) -> None:
             normalized = dict(raw)
             normalized.setdefault("course", "General")
             normalized.setdefault("priority", "medium")
+            normalized.setdefault("source", "demo")
             if normalized.get("status") == "open":
                 normalized["status"] = "pending"
             elif normalized.get("status") == "done":
@@ -78,19 +97,9 @@ def set_deadline_store(items: List[Dict[str, Any]]) -> None:
     _DEADLINE_STORE = validated
 
 
-def reset_deadline_store() -> None:
+def reset_deadline_store(reference_date: Optional[date] = None) -> None:
     global _DEADLINE_STORE
-    _DEADLINE_STORE = [dict(item) for item in _DEFAULT_DEADLINES]
-
-
-def _now_almaty() -> datetime:
-    try:
-        tz = ZoneInfo(ALMATY_TZ_NAME)
-        return datetime.now(tz)
-    except ZoneInfoNotFoundError:
-        from datetime import timezone, timedelta
-
-        return datetime.now(timezone(timedelta(hours=5)))
+    _DEADLINE_STORE = _build_default_deadlines(reference_date=reference_date)
 
 
 def _make_response(
@@ -153,6 +162,7 @@ def add_deadline(
             due_date=due_date.strip(),
             priority=normalized_priority,  # type: ignore[arg-type]
             status="pending",
+            source="live",
         )
         record = new_item.model_dump()
         _DEADLINE_STORE.append(record)

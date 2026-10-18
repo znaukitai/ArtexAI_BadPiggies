@@ -30,6 +30,7 @@ class DeadlineItem(BaseModel):
     due_date: str
     priority: Literal["low", "medium", "high", "critical"] = "medium"
     status: Literal["pending", "completed"] = "pending"
+    source: SourceType = "demo"
 
 
 class AgentResponse(BaseModel):

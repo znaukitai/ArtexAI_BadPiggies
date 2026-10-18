@@ -409,8 +409,9 @@ class LocalBackend:
                         day_label = format_days_left_ru(days_left)
                         due_ru = format_date_ru(d.get("due_date", ""))
                         prio_ru = format_priority_ru(d.get("priority", "medium"))
+                        demo_tag = " `[DEMO]`" if d.get("source", "demo") == "demo" else ""
                         dl_lines.append(
-                            f"- **{d.get('course', 'Курс')}** — {d.get('title')} · {due_ru} ({day_label}, приоритет: {prio_ru})"
+                            f"- **{d.get('course', 'Курс')}** — {d.get('title')} · {due_ru} ({day_label}, приоритет: {prio_ru}){demo_tag}"
                         )
                     first = deadlines[0]
                     answer = (

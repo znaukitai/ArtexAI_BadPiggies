@@ -550,10 +550,19 @@ def render_deadlines(state: dict[str, Any]) -> None:
         except ValueError:
             badge = "—"
 
+        source_badge = (
+            format_badge_html("demo")
+            if str(task.get("source", "demo")).lower() == "demo"
+            else ""
+        )
+
         st.markdown(
             f"""
             <div class="dl-item">
-                <div class="dl-course">{course}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                    <div class="dl-course">{course}</div>
+                    {source_badge}
+                </div>
                 <div class="dl-title">{title}</div>
                 <div class="dl-meta">
                     <span>{due_str}</span>
