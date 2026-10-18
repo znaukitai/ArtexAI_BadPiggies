@@ -239,3 +239,13 @@ def test_prompt_injection_and_html_escaping() -> None:
     assert "<script>" not in escaped
     assert "&lt;script&gt;" in escaped
 
+
+def test_launcher_port_and_root() -> None:
+    from launcher import find_target_port, resolve_app_root
+
+    root = resolve_app_root()
+    assert (root / "frontend" / "app.py").exists()
+    port = find_target_port(8599)
+    assert isinstance(port, int) and port > 1024
+
+

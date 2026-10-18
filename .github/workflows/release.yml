@@ -1,0 +1,60 @@
+name: Build and Release Windows Executables
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install runtime and build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+
+      - name: Run test suite
+        run: pytest -q
+
+      - name: Build CampusPulse.exe and CampusPulse_Setup.exe
+        run: python scripts/build_exe.py
+
+      - name: Build Inno Setup installer (if ISCC available)
+        shell: pwsh
+        run: |
+          if (Get-Command iscc -ErrorAction SilentlyContinue) {
+            iscc installer/CampusPulse_Setup.iss
+          }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CampusPulse-Windows-Release
+          path: |
+            dist/CampusPulse-win64.zip
+            dist/CampusPulse_Setup.exe
+            dist/CampusPulse/CampusPulse.exe
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/CampusPulse-win64.zip
+            dist/CampusPulse_Setup.exe
+          generate_release_notes: true

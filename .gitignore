@@ -47,6 +47,8 @@ eggs/
 *.zip
 *.tar.gz
 *.log
+*.spec
+*.exe
 
 # IDE & OS Files
 .idea/
