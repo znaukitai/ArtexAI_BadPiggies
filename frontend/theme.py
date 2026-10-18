@@ -610,7 +610,9 @@ footer {{
 }}
 
 /* Selectbox field & Virtual Dropdown (stSelectbox / stSelectboxVirtualDropdown) */
-[data-testid="stSelectbox"] > div:nth-of-type(2) > div > div,
+[data-testid="stSelectbox"] > div > div,
+[data-testid="stSelectbox"] .react-aria-ComboBox > div,
+[data-testid="stSelectbox"] .react-aria-Group,
 [data-baseweb="select"] > div {{
     background: var(--cp-surface-2) !important;
     background-color: var(--cp-surface-2) !important;
@@ -618,17 +620,21 @@ footer {{
     border-radius: 10px !important;
     color: var(--cp-text) !important;
 }}
-[data-testid="stSelectbox"] > div:nth-of-type(2) > div > div:focus-within {{
+[data-testid="stSelectbox"] > div > div:focus-within,
+[data-testid="stSelectbox"] .react-aria-ComboBox > div:focus-within {{
     border-color: var(--cp-accent) !important;
     box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
 }}
 [data-testid="stSelectbox"] input {{
     color: var(--cp-text) !important;
     background: transparent !important;
+    background-color: transparent !important;
+    -webkit-text-fill-color: var(--cp-text) !important;
 }}
 [data-testid="stSelectbox"] button {{
     color: var(--cp-muted) !important;
     background: transparent !important;
+    background-color: transparent !important;
 }}
 [data-testid="stSelectboxVirtualDropdown"] {{
     background: var(--cp-surface) !important;
