@@ -10,8 +10,17 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import importlib
 import streamlit as st
 from dotenv import load_dotenv
+
+import frontend.icons as _icons_mod
+import frontend.theme as _theme_mod
+import frontend.components as _components_mod
+
+importlib.reload(_icons_mod)
+importlib.reload(_theme_mod)
+importlib.reload(_components_mod)
 
 from core.deadline_logic import format_date_ru
 from frontend.components import (
