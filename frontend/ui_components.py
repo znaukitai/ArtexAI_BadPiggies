@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from datetime import date, datetime
 from typing import Any
 
@@ -10,130 +11,428 @@ import streamlit as st
 from frontend.gateway import ZONE
 
 
-def apply_theme(theme: str = "dark") -> None:
-    """Apply clean dark or light theme CSS."""
-    is_dark = theme == "dark"
+def inject_theme(mode: str = "dark") -> None:
+    """Inject CSS variables and theme rules for dark or light mode."""
+    is_dark = mode == "dark"
+    scheme = "dark" if is_dark else "light"
 
-    bg_main = "#0d0f12" if is_dark else "#f8fafc"
-    bg_sidebar = "#13161b" if is_dark else "#f1f5f9"
-    bg_surface = "#181c23" if is_dark else "#ffffff"
-    bg_hover = "#212630" if is_dark else "#e2e8f0"
-    border_col = "rgba(255, 255, 255, 0.08)" if is_dark else "rgba(15, 23, 42, 0.1)"
-    text_primary = "#f1f5f9" if is_dark else "#0f172a"
-    text_muted = "#94a3b8" if is_dark else "#64748b"
-    accent = "#3b82f6" if is_dark else "#2563eb"
-    glow = "radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.10), transparent 60%)" if is_dark else "radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.06), transparent 60%)"
+    bg = "#0B0F17" if is_dark else "#FAFAFA"
+    surface = "#111827" if is_dark else "#FFFFFF"
+    surface2 = "#1A2232" if is_dark else "#F4F4F5"
+    border = "rgba(255, 255, 255, 0.08)" if is_dark else "#E4E4E7"
+    text_col = "#E6EAF2" if is_dark else "#18181B"
+    text_muted = "#9AA4B5" if is_dark else "#52525B"
+    accent = "#35C3CF" if is_dark else "#0B7C87"
+    accent_ring = "rgba(53, 195, 207, 0.28)" if is_dark else "rgba(11, 124, 135, 0.24)"
+    live_fg = "#3DD68C" if is_dark else "#15803D"
+    live_bg = "rgba(61, 214, 140, 0.12)" if is_dark else "rgba(21, 128, 61, 0.12)"
+    demo_fg = "#FDA14A" if is_dark else "#B45309"
+    demo_bg = "rgba(253, 161, 74, 0.12)" if is_dark else "rgba(180, 83, 9, 0.12)"
+    err_fg = "#F97066" if is_dark else "#C0261B"
+    err_bg = "rgba(249, 112, 102, 0.12)" if is_dark else "rgba(192, 38, 27, 0.12)"
+    shadow_float = (
+        "0 8px 24px rgba(0, 0, 0, 0.35)"
+        if is_dark
+        else "0 6px 20px rgba(24, 24, 27, 0.08)"
+    )
 
     st.markdown(
         f"""
         <style>
-        .stApp {{
-            background-color: {bg_main};
-            background-image: {glow};
-            color: {text_primary};
+        :root, html, body, .stApp {{
+            color-scheme: {scheme};
+            --cp-bg: {bg};
+            --cp-surface: {surface};
+            --cp-surface-2: {surface2};
+            --cp-border: {border};
+            --cp-text: {text_col};
+            --cp-text-muted: {text_muted};
+            --cp-accent: {accent};
+            --cp-accent-ring: {accent_ring};
+            --cp-live-fg: {live_fg};
+            --cp-live-bg: {live_bg};
+            --cp-demo-fg: {demo_fg};
+            --cp-demo-bg: {demo_bg};
+            --cp-err-fg: {err_fg};
+            --cp-err-bg: {err_bg};
+            --cp-shadow: {shadow_float};
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 15px;
+            background-color: var(--cp-bg) !important;
+            background-image: none !important;
+            color: var(--cp-text);
         }}
-        [data-testid="stHeader"] {{
+
+        /* Single owner of page background — transparent layout containers */
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        [data-testid="stMainBlockContainer"],
+        [data-testid="stHeader"],
+        [data-testid="stBottom"],
+        [data-testid="stBottom"] > div,
+        [data-testid="stBottomBlockContainer"],
+        [data-testid="stBottomBlockContainer"] > div {{
             background: transparent !important;
+            background-color: transparent !important;
+            background-image: none !important;
         }}
-        [data-testid="stSidebar"] {{
-            background-color: {bg_sidebar} !important;
-            border-right: 1px solid {border_col};
+
+        /* Hide Deploy button and developer menu */
+        [data-testid="stAppDeployButton"],
+        [data-testid="stMainMenu"],
+        [data-testid="stToolbar"] {{
+            display: none !important;
         }}
-        [data-testid="stSidebar"] * {{
-            color: {text_primary};
+
+        /* Typography across all elements */
+        .stApp,
+        .stApp p,
+        .stApp li,
+        .stApp ul,
+        .stApp ol,
+        .stApp span,
+        .stApp label,
+        .stApp td,
+        .stApp th,
+        [data-testid="stMarkdownContainer"],
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li,
+        [data-testid="stChatMessageContent"],
+        [data-testid="stChatMessageContent"] p,
+        [data-testid="stChatMessageContent"] li,
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpanderDetails"],
+        [data-testid="stPopoverBody"],
+        [data-testid="stDialog"] {{
+            color: var(--cp-text);
+            font-size: 15px;
+            line-height: 1.55;
         }}
-        .block-container {{
-            max-width: 880px !important;
-            padding-top: 2rem !important;
-            padding-bottom: 4rem !important;
+
+        .stApp h1, .stApp h2, .stApp h3, .stApp h4 {{
+            color: var(--cp-text);
+            font-weight: 600;
+            letter-spacing: -0.015em;
         }}
-        .stButton > button {{
-            background-color: {bg_surface} !important;
-            color: {text_primary} !important;
-            border: 1px solid {border_col} !important;
-            border-radius: 14px !important;
-            padding: 0.55rem 0.9rem !important;
-            font-size: 0.86rem !important;
-            font-weight: 500 !important;
-            text-align: left !important;
-            transition: background-color 0.15s ease, border-color 0.15s ease;
+        .stApp h1 {{ font-size: 28px; }}
+        .stApp h2 {{ font-size: 22px; }}
+        .stApp h3 {{ font-size: 20px; }}
+
+        [data-testid="stCaptionContainer"],
+        [data-testid="stCaptionContainer"] p,
+        .cp-muted {{
+            color: var(--cp-text-muted) !important;
+            font-size: 13px !important;
         }}
-        .stButton > button:hover {{
-            background-color: {bg_hover} !important;
-            border-color: {accent} !important;
+
+        /* Neutral inline code and code blocks */
+        .stApp code {{
+            background-color: var(--cp-surface-2);
+            color: var(--cp-text);
+            border: 1px solid var(--cp-border);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 13px;
         }}
+        .stApp pre, .stApp pre code {{
+            background-color: var(--cp-surface-2);
+            color: var(--cp-text);
+            border-radius: 10px;
+        }}
+
+        /* Tables */
+        .stApp table {{
+            border-collapse: collapse;
+            width: 100%;
+            background-color: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 10px;
+            overflow: hidden;
+        }}
+        .stApp th, .stApp td {{
+            border: 1px solid var(--cp-border);
+            padding: 8px 12px;
+            color: var(--cp-text);
+        }}
+        .stApp th {{
+            background-color: var(--cp-surface-2);
+            font-weight: 600;
+        }}
+
+        /* Sidebar */
+        [data-testid="stSidebar"],
+        [data-testid="stSidebarContent"] {{
+            background-color: var(--cp-surface) !important;
+            border-right: 1px solid var(--cp-border);
+            color: var(--cp-text);
+        }}
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] h4 {{
+            color: var(--cp-text);
+        }}
+
+        /* Main column width */
+        [data-testid="stMainBlockContainer"] {{
+            max-width: 880px;
+            padding-top: 24px;
+            padding-bottom: 48px;
+        }}
+        [data-testid="stBottomBlockContainer"] {{
+            max-width: 880px;
+            padding-top: 8px;
+            padding-bottom: 16px;
+        }}
+
+        /* Buttons */
+        .stButton > button,
+        [data-testid="stLinkButton"] > a,
+        [data-testid="stPopover"] > div > button {{
+            background-color: var(--cp-surface);
+            color: var(--cp-text);
+            border: 1px solid var(--cp-border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+        }}
+        .stButton > button:hover,
+        [data-testid="stLinkButton"] > a:hover,
+        [data-testid="stPopover"] > div > button:hover {{
+            background-color: var(--cp-surface-2);
+            border-color: var(--cp-accent);
+            color: var(--cp-text);
+        }}
+        .stButton > button:focus-visible,
+        [data-testid="stPopover"] > div > button:focus-visible {{
+            outline: none;
+            border-color: var(--cp-accent);
+            box-shadow: 0 0 0 3px var(--cp-accent-ring);
+        }}
+
+        /* Inputs, textareas, selects */
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea,
+        [data-testid="stDateInput"] input,
+        [data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+            background-color: var(--cp-surface-2);
+            color: var(--cp-text);
+            border: 1px solid var(--cp-border);
+            border-radius: 10px;
+        }}
+        [data-testid="stTextInput"] input::placeholder,
+        [data-testid="stTextArea"] textarea::placeholder,
+        [data-testid="stChatInputTextArea"]::placeholder {{
+            color: var(--cp-text-muted);
+            opacity: 1;
+        }}
+        [data-testid="stTextInput"] input:focus,
+        [data-testid="stTextArea"] textarea:focus {{
+            border-color: var(--cp-accent);
+            box-shadow: 0 0 0 3px var(--cp-accent-ring);
+            outline: none;
+        }}
+
+        /* Expanders, Popovers, Dialogs */
+        [data-testid="stExpander"] {{
+            background-color: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 14px;
+            overflow: hidden;
+        }}
+        [data-testid="stPopoverBody"],
+        [data-testid="stDialog"] > div {{
+            background-color: var(--cp-surface);
+            color: var(--cp-text);
+            border: 1px solid var(--cp-border);
+            border-radius: 14px;
+            box-shadow: var(--cp-shadow);
+        }}
+
+        /* Chat messages & neutral avatars */
         [data-testid="stChatMessage"] {{
-            background-color: {bg_surface};
-            border: 1px solid {border_col};
-            border-radius: 16px;
-            padding: 1rem 1.2rem;
-            margin-bottom: 0.75rem;
+            background-color: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
         }}
+        [data-testid="stChatMessageAvatarUser"],
+        [data-testid="stChatMessageAvatarAssistant"],
+        [data-testid="stChatMessageAvatarCustom"] {{
+            background-color: var(--cp-surface-2) !important;
+            color: var(--cp-text) !important;
+            border: 1px solid var(--cp-border);
+        }}
+
+        /* Floating pill chat input — single border, no inner seams */
         [data-testid="stChatInput"] {{
-            border-radius: 20px !important;
+            background-color: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 20px;
+            box-shadow: var(--cp-shadow);
+            padding: 4px 8px;
+            transition: border-color 180ms ease, box-shadow 180ms ease;
         }}
+        [data-testid="stChatInput"]:focus-within {{
+            border-color: var(--cp-accent);
+            box-shadow: 0 0 0 3px var(--cp-accent-ring), var(--cp-shadow);
+        }}
+        [data-testid="stChatInput"] > div,
+        [data-testid="stChatInput"] > div > div,
+        [data-testid="stChatInputTextArea"],
+        [data-testid="stChatInputSubmitButton"] {{
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: var(--cp-text);
+        }}
+        [data-testid="stChatInputSubmitButton"]:hover {{
+            color: var(--cp-accent);
+        }}
+
+        /* Iframe container */
+        [data-testid="stIFrame"],
+        .stApp iframe {{
+            background-color: var(--cp-surface);
+            border-radius: 14px;
+            border: 1px solid var(--cp-border);
+        }}
+
+        /* Hero section */
         .hero-box {{
             text-align: center;
-            padding: 2.5rem 1rem 1.5rem 1rem;
+            padding: 36px 16px 24px 16px;
         }}
         .hero-title {{
-            font-size: 2rem;
+            font-size: 28px;
             font-weight: 600;
             letter-spacing: -0.02em;
-            margin-bottom: 0.4rem;
-            color: {text_primary};
+            margin-bottom: 8px;
+            color: var(--cp-text);
         }}
         .hero-sub {{
-            font-size: 0.95rem;
-            color: {text_muted};
-            margin-bottom: 1.5rem;
+            font-size: 15px;
+            color: var(--cp-text-muted);
+            margin-bottom: 20px;
         }}
+
+        /* Deadline card */
         .dl-item {{
-            background-color: {bg_surface};
-            border: 1px solid {border_col};
-            border-radius: 12px;
-            padding: 0.65rem 0.8rem;
-            margin-bottom: 0.5rem;
+            background-color: var(--cp-surface-2);
+            border: 1px solid var(--cp-border);
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 8px;
         }}
         .dl-course {{
-            font-size: 0.72rem;
-            color: {accent};
+            font-size: 12px;
+            color: var(--cp-accent);
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.04em;
         }}
         .dl-title {{
-            font-size: 0.85rem;
+            font-size: 14px;
             font-weight: 500;
-            color: {text_primary};
-            margin: 0.15rem 0 0.3rem 0;
+            color: var(--cp-text);
+            margin: 4px 0 8px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }}
         .dl-meta {{
-            font-size: 0.75rem;
-            color: {text_muted};
+            font-size: 13px;
+            color: var(--cp-text-muted);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 8px;
         }}
-        .repo-pill {{
+
+        /* Semantic badges (LIVE / DEMO / Error) */
+        .cp-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            line-height: 1.4;
+        }}
+        .cp-badge-dot {{
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
             display: inline-block;
-            background-color: {bg_surface};
-            border: 1px solid {border_col};
+        }}
+        .cp-badge-live {{
+            background-color: var(--cp-live-bg);
+            color: var(--cp-live-fg);
+        }}
+        .cp-badge-live .cp-badge-dot {{
+            background-color: var(--cp-live-fg);
+        }}
+        .cp-badge-demo {{
+            background-color: var(--cp-demo-bg);
+            color: var(--cp-demo-fg);
+        }}
+        .cp-badge-demo .cp-badge-dot {{
+            background-color: var(--cp-demo-fg);
+        }}
+        .cp-badge-err {{
+            background-color: var(--cp-err-bg);
+            color: var(--cp-err-fg);
+        }}
+        .cp-badge-err .cp-badge-dot {{
+            background-color: var(--cp-err-fg);
+        }}
+
+        .repo-pill {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--cp-surface-2);
+            border: 1px solid var(--cp-border);
             border-radius: 10px;
-            padding: 0.4rem 0.7rem;
-            font-size: 0.78rem;
-            margin-top: 0.25rem;
+            padding: 8px 12px;
+            font-size: 13px;
+            margin-top: 4px;
             width: 100%;
+            color: var(--cp-text);
         }}
         .repo-pill a {{
-            color: {accent} !important;
+            color: var(--cp-accent) !important;
             text-decoration: none;
             font-weight: 500;
+            word-break: break-all;
+        }}
+
+        @media (prefers-reduced-motion: reduce) {{
+            *, *::before, *::after {{
+                transition: none !important;
+                animation: none !important;
+            }}
         }}
         </style>
         """,
         unsafe_allow_html=True,
     )
+
+
+def apply_theme(theme: str = "dark") -> None:
+    """Backward-compatible alias for inject_theme."""
+    inject_theme(theme)
 
 
 def render_deadlines(state: dict[str, Any]) -> None:
@@ -147,26 +446,24 @@ def render_deadlines(state: dict[str, Any]) -> None:
         if isinstance(d, dict) and d.get("status") not in {"done", "completed"}
     ]
     if not active:
-        st.caption("Активных дедлайнов нет.")
+        st.caption("Дедлайнов пока нет")
         return
 
     today = datetime.now(ZONE).date()
     for task in sorted(active, key=lambda d: str(d.get("due_date", "9999"))):
-        title = str(task.get("title", "Без названия"))
-        course = str(task.get("course", "Курс"))
-        due_str = str(task.get("due_date", "—"))
+        title = html.escape(str(task.get("title", "Без названия")))
+        course = html.escape(str(task.get("course", "Курс")))
+        due_str = html.escape(str(task.get("due_date", "—")))
         try:
-            delta = (date.fromisoformat(due_str[:10]) - today).days
+            delta = (date.fromisoformat(str(task.get("due_date", ""))[:10]) - today).days
             if delta < 0:
-                badge = "🔴 Просрочено"
+                badge = f"просрочено на {abs(delta)} дн."
             elif delta == 0:
-                badge = "🟠 Сегодня"
-            elif delta <= 3:
-                badge = f"🟡 {delta} дн."
+                badge = "сегодня"
             else:
-                badge = f"🔵 {delta} дн."
+                badge = f"{delta} дн."
         except ValueError:
-            badge = "⚪ —"
+            badge = "—"
 
         st.markdown(
             f"""
@@ -184,5 +481,5 @@ def render_deadlines(state: dict[str, Any]) -> None:
 
 
 def render_response(response: dict[str, Any]) -> None:
-    """Render assistant message cleanly without execution trace."""
+    """Render assistant message."""
     st.markdown(response.get("answer", ""))
