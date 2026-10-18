@@ -126,3 +126,34 @@ Random note without any date
     assert candidates[0]["priority"] == "high"
     assert candidates[1]["course"] == "Linear Algebra"
     assert candidates[1]["due_date"] == "2026-10-25"
+
+
+def test_russian_formatting_helpers() -> None:
+    from core.deadline_logic import (
+        format_date_ru,
+        format_days_left_ru,
+        format_priority_ru,
+        format_urgency_ru,
+    )
+
+    assert format_days_left_ru(0) == "сегодня"
+    assert format_days_left_ru(1) == "1 дн."
+    assert format_days_left_ru(2) == "2 дн."
+    assert format_days_left_ru(5) == "5 дн."
+    assert format_days_left_ru(21) == "21 дн."
+    assert format_days_left_ru(-1) == "просрочено на 1 дн."
+    assert format_days_left_ru(-3) == "просрочено на 3 дн."
+
+    assert format_priority_ru("critical") == "критично"
+    assert format_priority_ru("high") == "высокий"
+    assert format_priority_ru("medium") == "средний"
+    assert format_priority_ru("low") == "низкий"
+
+    assert format_urgency_ru("overdue") == "Просрочено"
+    assert format_urgency_ru("today") == "Сегодня"
+    assert format_urgency_ru("urgent") == "Срочно"
+    assert format_urgency_ru("normal") == "В планах"
+
+    assert format_date_ru("2026-10-20") == "20 окт"
+    assert format_date_ru("2026-10-20", with_year=True) == "20 окт 2026"
+

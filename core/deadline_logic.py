@@ -244,3 +244,67 @@ def parse_syllabus_candidates(text: str, default_course: str = "General") -> Lis
         )
 
     return candidates
+
+
+PRIORITY_RU: Dict[str, str] = {
+    "critical": "критично",
+    "high": "высокий",
+    "medium": "средний",
+    "low": "низкий",
+}
+
+URGENCY_RU: Dict[str, str] = {
+    "overdue": "Просрочено",
+    "today": "Сегодня",
+    "urgent": "Срочно",
+    "normal": "В планах",
+}
+
+MONTH_RU: Dict[int, str] = {
+    1: "янв",
+    2: "фев",
+    3: "мар",
+    4: "апр",
+    5: "мая",
+    6: "июн",
+    7: "июл",
+    8: "авг",
+    9: "сен",
+    10: "окт",
+    11: "ноя",
+    12: "дек",
+}
+
+
+def format_date_ru(date_str: str, with_year: bool = False) -> str:
+    """Format ISO date YYYY-MM-DD into Russian short format like '20 окт' or '20 окт 2026'."""
+    try:
+        dt = parse_iso_date(str(date_str).strip())
+        mon = MONTH_RU.get(dt.month, "")
+        return f"{dt.day} {mon} {dt.year}" if with_year else f"{dt.day} {mon}"
+    except ValueError:
+        return str(date_str)
+
+
+def format_days_left_ru(days_left: int) -> str:
+    """Format remaining days into standard Russian label."""
+    if days_left < 0:
+        return f"просрочено на {abs(days_left)} дн."
+    if days_left == 0:
+        return "сегодня"
+    return f"{days_left} дн."
+
+
+def format_priority_ru(priority: str) -> str:
+    """Translate English priority code into Russian."""
+    raw = str(priority).strip().lower()
+    if raw in PRIORITY_RU.values():
+        return raw
+    return PRIORITY_RU.get(raw, "средний")
+
+
+def format_urgency_ru(urgency: str) -> str:
+    """Translate urgency bucket into Russian label."""
+    raw = str(urgency).strip().lower()
+    return URGENCY_RU.get(raw, "В планах")
+

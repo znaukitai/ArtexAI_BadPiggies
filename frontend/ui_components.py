@@ -9,6 +9,13 @@ from typing import Any
 
 import streamlit as st
 
+from core.deadline_logic import (
+    calculate_urgency,
+    format_date_ru,
+    format_days_left_ru,
+    format_priority_ru,
+    format_urgency_ru,
+)
 from frontend.gateway import ZONE
 
 
@@ -538,15 +545,14 @@ def render_deadlines(state: dict[str, Any]) -> None:
     for task in sorted(active, key=lambda d: str(d.get("due_date", "9999"))):
         title = html.escape(str(task.get("title", "Без названия")))
         course = html.escape(str(task.get("course", "Курс")))
-        due_str = html.escape(str(task.get("due_date", "—")))
+        raw_due = str(task.get("due_date", "—"))
+        due_str = html.escape(format_date_ru(raw_due))
+        prio_ru = html.escape(format_priority_ru(str(task.get("priority", "medium"))))
         try:
-            delta = (date.fromisoformat(str(task.get("due_date", ""))[:10]) - today).days
-            if delta < 0:
-                badge = f"просрочено на {abs(delta)} дн."
-            elif delta == 0:
-                badge = "сегодня"
-            else:
-                badge = f"{delta} дн."
+            delta, urg_code = calculate_urgency(raw_due, today)
+            urg_ru = format_urgency_ru(urg_code)
+            days_ru = format_days_left_ru(delta)
+            badge = html.escape(f"{urg_ru} · {days_ru}")
         except ValueError:
             badge = "—"
 
@@ -565,7 +571,7 @@ def render_deadlines(state: dict[str, Any]) -> None:
                 </div>
                 <div class="dl-title">{title}</div>
                 <div class="dl-meta">
-                    <span>{due_str}</span>
+                    <span>{due_str} · {prio_ru}</span>
                     <span>{badge}</span>
                 </div>
             </div>
