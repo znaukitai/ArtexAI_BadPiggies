@@ -1,5 +1,6 @@
 """Run from project root: python -m streamlit run frontend/app.py."""
 
+import html
 import os
 import sys
 from pathlib import Path
@@ -28,6 +29,10 @@ PROMPTS = [
 
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"
+if "gemini_api_key" not in st.session_state:
+    st.session_state.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+if "github_repo" not in st.session_state:
+    st.session_state.github_repo = os.getenv("GITHUB_REPOSITORY", DEFAULT_REPO) or DEFAULT_REPO
 
 inject_theme(st.session_state.theme)
 
@@ -56,20 +61,21 @@ with st.sidebar:
 
         api_key_input = st.text_input(
             "Gemini API Key",
-            value=os.getenv("GEMINI_API_KEY", ""),
+            value=st.session_state.gemini_api_key,
             type="password",
             placeholder="AIza...",
-            help="Необязательно. Если указан ключ, отвечает модель Gemini.",
+            help="Необязательно. Ключ хранится только в памяти текущей сессии.",
         )
         repo_input = st.text_input(
             "GitHub репозиторий",
-            value=os.getenv("GITHUB_REPOSITORY", DEFAULT_REPO) or DEFAULT_REPO,
+            value=st.session_state.github_repo,
             placeholder="owner/repo",
         )
-        if repo_input.strip():
-            os.environ["GITHUB_REPOSITORY"] = repo_input.strip()
-        if api_key_input.strip() != os.getenv("GEMINI_API_KEY", ""):
-            os.environ["GEMINI_API_KEY"] = api_key_input.strip()
+        if repo_input.strip() and repo_input.strip() != st.session_state.github_repo:
+            st.session_state.github_repo = repo_input.strip()
+            os.environ["GITHUB_REPOSITORY"] = st.session_state.github_repo
+        if api_key_input.strip() != st.session_state.gemini_api_key:
+            st.session_state.gemini_api_key = api_key_input.strip()
             st.session_state.pop("workspace", None)
 
     if st.session_state.get("mode") != mode:
@@ -78,7 +84,7 @@ with st.sidebar:
 
     if "workspace" not in st.session_state:
         try:
-            gateway = Gateway(mode, api_key=os.getenv("GEMINI_API_KEY"))
+            gateway = Gateway(mode, api_key=st.session_state.gemini_api_key)
             st.session_state.workspace = {
                 "gateway": gateway,
                 "state": {"deadlines": get_default_deadlines()},
@@ -92,10 +98,12 @@ with st.sidebar:
     workspace = st.session_state.workspace
     st.caption(workspace["status"])
 
-    active_repo = os.getenv("GITHUB_REPOSITORY", DEFAULT_REPO) or DEFAULT_REPO
-    repo_url = active_repo if active_repo.startswith("http") else f"https://github.com/{active_repo}"
+    active_repo = st.session_state.github_repo or DEFAULT_REPO
+    repo_url = active_repo if active_repo.startswith("https://github.com/") else f"https://github.com/{active_repo}"
+    safe_repo_url = html.escape(repo_url, quote=True)
+    safe_active_repo = html.escape(active_repo)
     st.markdown(
-        f'<div class="repo-pill"><a href="{repo_url}" target="_blank">{active_repo}</a></div>',
+        f'<div class="repo-pill"><a href="{safe_repo_url}" target="_blank" rel="noopener noreferrer">{safe_active_repo}</a></div>',
         unsafe_allow_html=True,
     )
 

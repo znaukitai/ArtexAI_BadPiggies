@@ -75,11 +75,16 @@ def _make_response(
 
 
 def validate_and_parse_github_url(repo_url: str) -> Tuple[str, str]:
-    """Validate GitHub HTTPS URL and extract (owner, repo)."""
+    """Validate GitHub HTTPS URL or owner/repo shorthand and extract (owner, repo)."""
     if not isinstance(repo_url, str) or not repo_url.strip():
         raise ValueError("repo_url must be a non-empty string.")
 
     raw = repo_url.strip()
+    if "://" not in raw and not raw.startswith("//") and "@" not in raw and ":" not in raw:
+        parts = [p for p in raw.strip("/").split("/") if p]
+        if len(parts) == 2:
+            raw = f"https://github.com/{parts[0]}/{parts[1]}"
+
     parsed = urlparse(raw)
 
     if parsed.scheme != "https":
@@ -97,8 +102,11 @@ def validate_and_parse_github_url(repo_url: str) -> Tuple[str, str]:
     if parsed.port not in (None, 443):
         raise ValueError("SSRF Protection: Non-standard ports are forbidden.")
 
+    if parsed.query or parsed.fragment:
+        raise ValueError("SSRF Protection: Query parameters and fragments are forbidden.")
+
     path_parts = [p for p in parsed.path.strip("/").split("/") if p]
-    if len(path_parts) < 2:
+    if len(path_parts) != 2:
         raise ValueError(
             "Invalid GitHub repository URL. Expected https://github.com/{owner}/{repo}."
         )
@@ -161,7 +169,15 @@ def github_repo_status(repo_url: Optional[str] = None) -> Dict[str, Any]:
                 return _make_response(
                     ok=False,
                     data=None,
-                    error=f"Repository '{owner}/{repo}' not found or is private (HTTP 404).",
+                    error=f"Репозиторий '{owner}/{repo}' не найден или является приватным (HTTP 404).",
+                    source="live",
+                    start_ns=start_ns,
+                )
+            if repo_resp.status_code in (403, 429):
+                return _make_response(
+                    ok=False,
+                    data=None,
+                    error="Превышен лимит запросов к GitHub API или доступ ограничен (HTTP 403/429). Укажите GITHUB_TOKEN или повторите позже.",
                     source="live",
                     start_ns=start_ns,
                 )
@@ -174,7 +190,10 @@ def github_repo_status(repo_url: Optional[str] = None) -> Dict[str, Any]:
                 params={"per_page": 3},
             )
             recent_commits: List[Dict[str, Any]] = []
-            if commits_resp.status_code == 200:
+            empty_repository = False
+            if commits_resp.status_code == 409:
+                empty_repository = True
+            elif commits_resp.status_code == 200:
                 for c in commits_resp.json()[:3]:
                     commit_info = c.get("commit", {})
                     author_info = commit_info.get("author", {})
@@ -199,6 +218,7 @@ def github_repo_status(repo_url: Optional[str] = None) -> Dict[str, Any]:
             "updated_at": repo_json.get("updated_at"),
             "pushed_at": repo_json.get("pushed_at"),
             "recent_commits": recent_commits,
+            "empty_repository": empty_repository,
         }
         return _make_response(
             ok=True,
@@ -210,7 +230,7 @@ def github_repo_status(repo_url: Optional[str] = None) -> Dict[str, Any]:
         return _make_response(
             ok=False,
             data=None,
-            error=f"GitHub API HTTP error {exc.response.status_code}.",
+            error=f"Ошибка GitHub API (HTTP {exc.response.status_code}).",
             source="live",
             start_ns=start_ns,
         )
@@ -218,7 +238,7 @@ def github_repo_status(repo_url: Optional[str] = None) -> Dict[str, Any]:
         return _make_response(
             ok=False,
             data=None,
-            error=f"Network error contacting GitHub API: {exc}",
+            error=f"Ошибка сети при обращении к GitHub API: {exc}",
             source="live",
             start_ns=start_ns,
         )
