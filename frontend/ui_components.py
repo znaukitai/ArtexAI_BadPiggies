@@ -17,6 +17,7 @@ from core.deadline_logic import (
     format_urgency_ru,
 )
 from frontend.gateway import ZONE
+from frontend.icons import get_icon
 
 
 def inject_theme(mode: str = "dark") -> None:
@@ -552,7 +553,13 @@ def render_deadlines(state: dict[str, Any]) -> None:
             delta, urg_code = calculate_urgency(raw_due, today)
             urg_ru = format_urgency_ru(urg_code)
             days_ru = format_days_left_ru(delta)
-            badge = html.escape(f"{urg_ru} · {days_ru}")
+            urg_icon = (
+                get_icon("alert_triangle")
+                if urg_code in {"overdue", "urgent"}
+                else get_icon("clock")
+            )
+            badge_text = html.escape(f"{urg_ru} · {days_ru}")
+            badge = f'<span style="display:inline-flex;align-items:center;gap:4px;">{urg_icon}<span>{badge_text}</span></span>'
         except ValueError:
             badge = "—"
 
@@ -561,6 +568,7 @@ def render_deadlines(state: dict[str, Any]) -> None:
             if str(task.get("source", "demo")).lower() == "demo"
             else ""
         )
+        cal_icon = get_icon("calendar")
 
         st.markdown(
             f"""
@@ -571,8 +579,8 @@ def render_deadlines(state: dict[str, Any]) -> None:
                 </div>
                 <div class="dl-title">{title}</div>
                 <div class="dl-meta">
-                    <span>{due_str} · {prio_ru}</span>
-                    <span>{badge}</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;">{cal_icon}<span>{due_str} · {prio_ru}</span></span>
+                    {badge}
                 </div>
             </div>
             """,
