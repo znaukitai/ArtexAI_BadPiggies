@@ -12,9 +12,18 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 from dotenv import load_dotenv
 
-from frontend.gateway import DEFAULT_REPO, Gateway, GatewayError
+from datetime import datetime
+
+from core.deadline_logic import format_date_ru
+from frontend.gateway import DEFAULT_REPO, ZONE, Gateway, GatewayError
 from frontend.icons import get_avatar_uri, get_icon
-from frontend.ui_components import apply_theme, inject_theme, render_deadlines, render_response
+from frontend.ui_components import (
+    apply_theme,
+    inject_theme,
+    open_action_dialog,
+    render_deadlines,
+    render_response,
+)
 from mcp_servers.academic_schedule import get_default_deadlines, reset_deadline_store
 
 load_dotenv(ROOT / ".env")
@@ -138,6 +147,13 @@ with st.sidebar:
     workspace = st.session_state.workspace
     st.caption(workspace["status"])
 
+    today_ru = format_date_ru(datetime.now(ZONE).date().isoformat(), with_year=True)
+    cal_svg = get_icon("calendar")
+    st.markdown(
+        f'<div class="cp-today-line"><span style="color:var(--cp-accent);display:inline-flex;">{cal_svg}</span><span>Сегодня: <strong>{today_ru}</strong></span></div>',
+        unsafe_allow_html=True,
+    )
+
     active_repo = st.session_state.github_repo or DEFAULT_REPO
     repo_url = active_repo if active_repo.startswith("https://github.com/") else f"https://github.com/{active_repo}"
     safe_repo_url = html.escape(repo_url, quote=True)
@@ -148,7 +164,13 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    st.markdown("#### Дедлайны")
+    col_dl_hdr, col_dl_plus = st.columns([4, 1])
+    with col_dl_hdr:
+        st.markdown("#### Дедлайны")
+    with col_dl_plus:
+        if st.button("", icon=":material/add:", key="plus_action_btn", help="Добавить или выполнить действие"):
+            open_action_dialog(workspace)
+
     render_deadlines(workspace["state"])
 
 selected_prompt = None

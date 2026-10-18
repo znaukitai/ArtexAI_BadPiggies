@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 from datetime import date, datetime
 from typing import Any
 
@@ -501,6 +502,43 @@ def inject_theme(mode: str = "dark") -> None:
             word-break: break-all;
         }}
 
+        /* Circular + action button (NEW-01) */
+        .st-key-plus_action_btn button,
+        .st-key-empty_plus_btn button {{
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            min-height: 38px !important;
+            border-radius: 50% !important;
+            padding: 0 !important;
+            background-color: var(--cp-accent) !important;
+            color: #0B0F17 !important;
+            border: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: var(--cp-shadow) !important;
+        }}
+        .st-key-plus_action_btn button *,
+        .st-key-empty_plus_btn button * {{
+            color: #0B0F17 !important;
+            fill: #0B0F17 !important;
+        }}
+        .st-key-plus_action_btn button:hover,
+        .st-key-empty_plus_btn button:hover {{
+            opacity: 0.92 !important;
+            transform: scale(1.03);
+        }}
+
+        .cp-today-line {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--cp-text-muted);
+            padding: 4px 0 8px 0;
+        }}
+
         @media (prefers-reduced-motion: reduce) {{
             *, *::before, *::after {{
                 transition: none !important;
@@ -691,4 +729,189 @@ def render_response(response: dict[str, Any]) -> None:
                 """,
                 unsafe_allow_html=True,
             )
+
+
+_PRIORITY_OPTIONS_RU_TO_EN = {
+    "Критично": "critical",
+    "Высокий": "high",
+    "Средний": "medium",
+    "Низкий": "low",
+}
+
+
+@st.dialog("Быстрые действия", width="large")
+def open_action_dialog(workspace: dict[str, Any], initial_action: str = "Добавить дедлайн") -> None:
+    """Modal dialog providing 5 quick actions backed by MCP tools."""
+    from datetime import timedelta
+    from mcp_servers.academic_schedule import (
+        add_deadline,
+        get_deadline_store,
+        parse_syllabus_text,
+        set_deadline_store,
+    )
+
+    actions = [
+        "Добавить дедлайн",
+        "Загрузить силлабус",
+        "План на неделю",
+        "Проверить репозиторий",
+        "Найти аудиторию",
+    ]
+    default_idx = actions.index(initial_action) if initial_action in actions else 0
+    chosen = st.radio(
+        "Выберите действие",
+        actions,
+        index=default_idx,
+        horizontal=True,
+        key="action_dialog_choice",
+    )
+    today = datetime.now(ZONE).date()
+
+    if chosen == "Добавить дедлайн":
+        with st.form("add_deadline_form", clear_on_submit=False):
+            course = st.text_input("Курс", value="AI & LLM Engineering", placeholder="Например: CS301 Distributed Systems")
+            title = st.text_input("Название задачи", placeholder="Например: Лабораторная работа №5")
+            col_d, col_p = st.columns(2)
+            with col_d:
+                due_val = st.date_input("Срок сдачи", value=today + timedelta(days=3))
+            with col_p:
+                prio_label = st.selectbox("Приоритет", list(_PRIORITY_OPTIONS_RU_TO_EN.keys()), index=1)
+            submitted = st.form_submit_button("Добавить в дедлайны", use_container_width=True)
+
+        if submitted:
+            if not title.strip():
+                st.error("Укажите название задачи.")
+            else:
+                set_deadline_store(workspace["state"].get("deadlines", []))
+                res = add_deadline(
+                    course=course.strip() or "Общий курс",
+                    title=title.strip(),
+                    due_date=due_val.isoformat(),
+                    priority=_PRIORITY_OPTIONS_RU_TO_EN[prio_label],  # type: ignore[arg-type]
+                )
+                if res.get("ok"):
+                    workspace["state"]["deadlines"] = get_deadline_store()
+                    added = res["data"]["added"]
+                    days_ru = format_days_left_ru(int(added.get("days_left", 0)))
+                    due_ru = format_date_ru(added.get("due_date", ""))
+                    prio_ru = format_priority_ru(added.get("priority", "medium"))
+                    msg = (
+                        f"### Дедлайн добавлен\n\n"
+                        f"- **Курс:** {added.get('course')}\n"
+                        f"- **Задача:** {added.get('title')}\n"
+                        f"- **Срок сдачи:** {due_ru} ({days_ru})\n"
+                        f"- **Приоритет:** {prio_ru}"
+                    )
+                    workspace["messages"].append({"role": "assistant", "response": {"answer": msg, "steps": [], "meta": {"backend": "local"}}})
+                    st.rerun()
+                else:
+                    st.error(res.get("error") or "Не удалось добавить дедлайн.")
+
+    elif chosen == "Загрузить силлабус":
+        st.caption("Вставьте текст силлабуса с датами в формате ГГГГ-ММ-ДД или загрузите текстовый файл.")
+        uploaded = st.file_uploader("Текстовый файл силлабуса (.txt, .md)", type=["txt", "md"])
+        default_syllabus = ""
+        if uploaded is not None:
+            try:
+                default_syllabus = uploaded.getvalue().decode("utf-8", errors="replace")
+            except Exception:
+                default_syllabus = ""
+
+        raw_text = st.text_area(
+            "Текст силлабуса",
+            value=default_syllabus or "CS301 - Lab 5 Raft Replication due 2026-10-24 [high]\nAI & LLM - Final Project Demo due 2026-10-29 [critical]",
+            height=130,
+        )
+        if st.button("Распознать дедлайны", key="parse_syllabus_btn", use_container_width=True):
+            parsed = parse_syllabus_text(raw_text)
+            if parsed.get("ok"):
+                st.session_state.syllabus_candidates = parsed["data"].get("candidates", [])
+            else:
+                st.error(parsed.get("error") or "Ошибка разбора силлабуса.")
+
+        candidates = st.session_state.get("syllabus_candidates", [])
+        if candidates:
+            st.markdown(f"**Найдено задач: {len(candidates)}** (отметьте нужные для сохранения):")
+            selected_items: list[dict[str, Any]] = []
+            for idx, cand in enumerate(candidates):
+                c_course = cand.get("course", "Курс")
+                c_title = cand.get("title", "Задача")
+                c_due = format_date_ru(cand.get("due_date", ""), with_year=True)
+                c_prio = format_priority_ru(cand.get("priority", "medium"))
+                checked = st.checkbox(
+                    f"{c_course} — {c_title} · {c_due} ({c_prio})",
+                    value=True,
+                    key=f"syl_cand_{idx}",
+                )
+                if checked:
+                    selected_items.append(cand)
+
+            if st.button("Добавить выбранные", key="save_syllabus_btn", use_container_width=True):
+                if not selected_items:
+                    st.warning("Выберите хотя бы одну задачу.")
+                else:
+                    set_deadline_store(workspace["state"].get("deadlines", []))
+                    added_count = 0
+                    for item in selected_items:
+                        r = add_deadline(
+                            course=str(item.get("course", "Курс")),
+                            title=str(item.get("title", "Задача")),
+                            due_date=str(item.get("due_date", today.isoformat())),
+                            priority=str(item.get("priority", "medium")),  # type: ignore[arg-type]
+                        )
+                        if r.get("ok"):
+                            added_count += 1
+                    workspace["state"]["deadlines"] = get_deadline_store()
+                    st.session_state.pop("syllabus_candidates", None)
+                    msg = f"### Импорт из силлабуса завершён\n\nДобавлено задач в расписание: **{added_count}**."
+                    workspace["messages"].append({"role": "assistant", "response": {"answer": msg, "steps": [], "meta": {"backend": "local"}}})
+                    st.rerun()
+
+    elif chosen == "План на неделю":
+        start_val = st.date_input("Дата начала недели", value=today)
+        if st.button("Составить учебный план", use_container_width=True):
+            prompt_text = f"Составь сбалансированный учебный план на неделю начиная с {start_val.isoformat()}"
+            workspace["messages"].append({"role": "user", "content": prompt_text})
+            res = workspace["gateway"].query(prompt_text, workspace["state"]).model_dump(mode="json")
+            workspace["state"] = res["state"]
+            workspace["messages"].append({"role": "assistant", "response": res})
+            st.rerun()
+
+    elif chosen == "Проверить репозиторий":
+        repo_val = st.text_input(
+            "GitHub-репозиторий (owner/repo или URL)",
+            value=st.session_state.get("github_repo", "znaukitai/CampusPulseAI_BadPiggies"),
+        )
+        files_val = st.text_input(
+            "Ожидаемые файлы (через запятую, необязательно)",
+            value="README.md, requirements.txt",
+        )
+        if st.button("Выполнить проверку", use_container_width=True):
+            clean_repo = repo_val.strip()
+            if clean_repo:
+                st.session_state.github_repo = clean_repo
+                os.environ["GITHUB_REPOSITORY"] = clean_repo
+            prompt_text = f"Проверь готовность репозитория {clean_repo}"
+            if files_val.strip():
+                prompt_text += f" (файлы: {files_val.strip()})"
+            workspace["messages"].append({"role": "user", "content": prompt_text})
+            res = workspace["gateway"].query(prompt_text, workspace["state"]).model_dump(mode="json")
+            workspace["state"] = res["state"]
+            workspace["messages"].append({"role": "assistant", "response": res})
+            st.rerun()
+
+    elif chosen == "Найти аудиторию":
+        place_query = st.text_input(
+            "Номер кабинета или название места в AITU",
+            placeholder="Например: C1.2.223, коворкинг, библиотека, деканат",
+        )
+        if st.button("Найти в кампусе", use_container_width=True):
+            q_str = place_query.strip() or "коворкинг"
+            prompt_text = f"Где находится {q_str} в кампусе AITU?"
+            workspace["messages"].append({"role": "user", "content": prompt_text})
+            res = workspace["gateway"].query(prompt_text, workspace["state"]).model_dump(mode="json")
+            workspace["state"] = res["state"]
+            workspace["messages"].append({"role": "assistant", "response": res})
+            st.rerun()
+
 
