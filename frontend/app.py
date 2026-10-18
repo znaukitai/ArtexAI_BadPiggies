@@ -3,6 +3,7 @@
 import html
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,18 +13,19 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 from dotenv import load_dotenv
 
-from datetime import datetime
-
 from core.deadline_logic import format_date_ru
-from frontend.gateway import DEFAULT_REPO, ZONE, Gateway, GatewayError
-from frontend.icons import get_avatar_uri, get_icon
-from frontend.ui_components import (
-    apply_theme,
-    inject_theme,
+from frontend.components import (
     open_action_dialog,
     render_deadlines,
+    render_empty_state,
+    render_error_card,
+    render_loading_state,
+    render_mode_badge,
     render_response,
 )
+from frontend.gateway import DEFAULT_REPO, ZONE, Gateway, GatewayError
+from frontend.icons import get_avatar_uri, icon
+from frontend.theme import inject_theme
 from mcp_servers.academic_schedule import get_default_deadlines, reset_deadline_store
 
 load_dotenv(ROOT / ".env")
@@ -49,19 +51,23 @@ if "vertex_resource" not in st.session_state:
 
 inject_theme(st.session_state.theme)
 
+
+def _render_sidebar_html(markup: str) -> None:
+    clean = " ".join(line.strip() for line in markup.splitlines() if line.strip())
+    if hasattr(st, "html"):
+        st.html(clean)
+    else:
+        st.markdown(clean, unsafe_allow_html=True)
+
+
 with st.sidebar:
-    col_brand, col_theme = st.columns([4, 1])
-    with col_brand:
-        brand_svg = get_icon("brand_pulse")
-        st.markdown(
-            f'<div style="display:flex;align-items:center;gap:8px;font-size:20px;font-weight:600;color:var(--cp-text);padding:4px 0;"><span style="color:var(--cp-accent);display:inline-flex;">{brand_svg}</span><span>CampusPulse</span></div>',
-            unsafe_allow_html=True,
-        )
-    with col_theme:
-        theme_icon = ":material/light_mode:" if st.session_state.theme == "dark" else ":material/dark_mode:"
-        if st.button("", icon=theme_icon, key="theme_btn", help="Переключить тему"):
-            st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
-            st.rerun()
+    brand_svg = icon("logo", size=20)
+    _render_sidebar_html(
+        f'<div class="cp-brand-row">'
+        f'<span class="cp-brand-icon">{brand_svg}</span>'
+        f"<span>CampusPulse</span>"
+        f"</div>"
+    )
 
     if st.button("Новый чат", icon=":material/add:", use_container_width=True):
         reset_deadline_store()
@@ -145,46 +151,64 @@ with st.sidebar:
             }
 
     workspace = st.session_state.workspace
-    st.caption(workspace["status"])
+    status_str = str(workspace["status"])
+    is_live_conn = "LIVE" in status_str.upper()
+    mode_badge = render_mode_badge(is_live_conn)
+    safe_status = html.escape(status_str)
+    _render_sidebar_html(
+        f'<div class="cp-status-row">'
+        f"{mode_badge}"
+        f'<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{safe_status}">{safe_status}</span>'
+        f"</div>"
+    )
 
     today_ru = format_date_ru(datetime.now(ZONE).date().isoformat(), with_year=True)
-    cal_svg = get_icon("calendar")
-    st.markdown(
-        f'<div class="cp-today-line"><span style="color:var(--cp-accent);display:inline-flex;">{cal_svg}</span><span>Сегодня: <strong>{today_ru}</strong></span></div>',
-        unsafe_allow_html=True,
+    cal_svg = icon("calendar_clock", size=16)
+    _render_sidebar_html(
+        f'<div class="cp-today-line">'
+        f'<span style="color:var(--cp-accent);display:inline-flex;">{cal_svg}</span>'
+        f"<span>Сегодня: <strong>{html.escape(today_ru)}</strong></span>"
+        f"</div>"
     )
 
     active_repo = st.session_state.github_repo or DEFAULT_REPO
     repo_url = active_repo if active_repo.startswith("https://github.com/") else f"https://github.com/{active_repo}"
     safe_repo_url = html.escape(repo_url, quote=True)
     safe_active_repo = html.escape(active_repo)
-    gh_svg = get_icon("github")
-    st.markdown(
-        f'<div class="repo-pill"><span style="color:var(--cp-accent);display:inline-flex;">{gh_svg}</span><a href="{safe_repo_url}" target="_blank" rel="noopener noreferrer">{safe_active_repo}</a></div>',
-        unsafe_allow_html=True,
+    branch_svg = icon("branch", size=15)
+    _render_sidebar_html(
+        f'<div class="repo-pill" title="{safe_active_repo}">'
+        f'<span style="color:var(--cp-accent);display:inline-flex;">{branch_svg}</span>'
+        f'<a href="{safe_repo_url}" target="_blank" rel="noopener noreferrer">{safe_active_repo}</a>'
+        f"</div>"
     )
 
-    col_dl_hdr, col_dl_plus = st.columns([4, 1])
+    col_dl_hdr, col_dl_plus = st.columns([4, 1], vertical_alignment="center")
     with col_dl_hdr:
-        st.markdown("#### Дедлайны")
+        _render_sidebar_html(
+            '<div style="font-size:16px;font-weight:600;color:var(--cp-text);letter-spacing:-0.01em;margin:4px 0;">Дедлайны</div>'
+        )
     with col_dl_plus:
-        if st.button("", icon=":material/add:", key="plus_action_btn", help="Добавить или выполнить действие"):
+        if st.button("", icon=":material/add:", key="plus_action_btn", help="Добавить дедлайн или действие"):
             open_action_dialog(workspace)
 
     render_deadlines(workspace["state"], workspace=workspace)
 
+    _render_sidebar_html('<div style="height:12px;border-top:1px solid var(--cp-border);margin-top:12px;"></div>')
+    col_theme_btn, col_theme_lbl = st.columns([1, 4], vertical_alignment="center")
+    with col_theme_btn:
+        theme_icon = ":material/light_mode:" if st.session_state.theme == "dark" else ":material/dark_mode:"
+        if st.button("", icon=theme_icon, key="theme_btn", help="Переключить тему (Тёмная / Светлая)"):
+            st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
+            st.rerun()
+    with col_theme_lbl:
+        theme_name = "Тёмная тема" if st.session_state.theme == "dark" else "Светлая тема"
+        st.caption(theme_name)
+
 selected_prompt = None
 
 if not workspace["messages"]:
-    st.markdown(
-        """
-        <div class="hero-box">
-            <div class="hero-title">Чем помочь по учёбе сегодня?</div>
-            <div class="hero-sub">Дедлайны AITU, проверка GitHub, расписание на неделю и карта корпусов C1</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_empty_state()
     cols = st.columns(2)
     for idx, (short_label, full_prompt) in enumerate(PROMPTS):
         with cols[idx % 2]:
@@ -204,7 +228,7 @@ with st.expander("Интерактивная карта кампуса AITU", ic
 user_avatar = get_avatar_uri("user", st.session_state.theme)
 assistant_avatar = get_avatar_uri("assistant", st.session_state.theme)
 
-for message in workspace["messages"]:
+for idx, message in enumerate(workspace["messages"]):
     role = message["role"]
     avatar_uri = user_avatar if role == "user" else assistant_avatar
     with st.chat_message(role, avatar=avatar_uri):
@@ -213,7 +237,9 @@ for message in workspace["messages"]:
         elif "response" in message:
             render_response(message["response"])
         else:
-            st.error(message["content"])
+            retry_prompt = message.get("failed_prompt")
+            if render_error_card(message["content"], retry_key=f"retry_msg_{idx}", on_retry_prompt=retry_prompt):
+                selected_prompt = retry_prompt
 
 typed_prompt = st.chat_input(
     "Спросите о дедлайнах, GitHub или аудитории в кампусе...",
@@ -226,12 +252,18 @@ if prompt := selected_prompt or typed_prompt:
     with st.chat_message("user", avatar=user_avatar):
         st.markdown(prompt)
     with st.chat_message("assistant", avatar=assistant_avatar):
+        loading_slot = st.empty()
+        with loading_slot.container():
+            render_loading_state()
         try:
-            with st.spinner("Думаю..."):
-                response = workspace["gateway"].query(prompt, workspace["state"]).model_dump(mode="json")
+            response = workspace["gateway"].query(prompt, workspace["state"]).model_dump(mode="json")
+            loading_slot.empty()
             workspace["state"] = response["state"]
             workspace["messages"].append({"role": "assistant", "response": response})
             st.rerun()
         except GatewayError as exc:
-            workspace["messages"].append({"role": "assistant", "content": str(exc)})
+            loading_slot.empty()
+            workspace["messages"].append(
+                {"role": "assistant", "content": str(exc), "failed_prompt": prompt}
+            )
             st.rerun()
