@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from datetime import date, datetime
 from typing import Any
 
@@ -398,6 +399,80 @@ def inject_theme(mode: str = "dark") -> None:
             background-color: var(--cp-err-fg);
         }}
 
+        /* Agent execution trace */
+        .cp-trace-meta {{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            background-color: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 10px;
+            font-size: 13px;
+            color: var(--cp-text-muted);
+        }}
+        .cp-step-card {{
+            background-color: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--cp-text);
+        }}
+        .cp-step-header {{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 6px;
+        }}
+        .cp-step-title {{
+            font-weight: 600;
+            color: var(--cp-text);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .cp-step-tool {{
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background-color: var(--cp-surface-2);
+            border: 1px solid var(--cp-border);
+            color: var(--cp-accent);
+        }}
+        .cp-step-body {{
+            color: var(--cp-text-muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }}
+        .cp-step-details summary {{
+            cursor: pointer;
+            color: var(--cp-accent);
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+            user-select: none;
+        }}
+        .cp-step-details pre {{
+            margin-top: 6px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background-color: var(--cp-surface-2);
+            border: 1px solid var(--cp-border);
+            color: var(--cp-text);
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }}
+
         .repo-pill {{
             display: flex;
             align-items: center;
@@ -433,6 +508,16 @@ def inject_theme(mode: str = "dark") -> None:
 def apply_theme(theme: str = "dark") -> None:
     """Backward-compatible alias for inject_theme."""
     inject_theme(theme)
+
+
+def format_badge_html(source: str | None) -> str:
+    """Render semantic LIVE, DEMO, or ERROR badge HTML."""
+    src = (source or "").strip().lower()
+    if src == "live":
+        return '<span class="cp-badge cp-badge-live"><span class="cp-badge-dot"></span>LIVE</span>'
+    if src in {"error", "err", "cloud-error"}:
+        return '<span class="cp-badge cp-badge-err"><span class="cp-badge-dot"></span>ERROR</span>'
+    return '<span class="cp-badge cp-badge-demo"><span class="cp-badge-dot"></span>DEMO</span>'
 
 
 def render_deadlines(state: dict[str, Any]) -> None:
@@ -480,6 +565,107 @@ def render_deadlines(state: dict[str, Any]) -> None:
         )
 
 
+_STEP_TYPE_LABELS = {
+    "thought": "Размышление",
+    "tool_call": "Вызов инструмента",
+    "tool_result": "Результат инструмента",
+    "final": "Формирование ответа",
+    "error": "Ошибка",
+}
+
+
 def render_response(response: dict[str, Any]) -> None:
-    """Render assistant message."""
+    """Render assistant message and collapsible execution trace with LIVE/DEMO badges."""
     st.markdown(response.get("answer", ""))
+
+    steps = response.get("steps") or []
+    meta = response.get("meta") or {}
+    if not isinstance(steps, list) or not steps:
+        return
+
+    backend = str(meta.get("backend", "local-orchestrator"))
+    model_name = html.escape(str(meta.get("model", "mcp-orchestrator")))
+    total_ms = int(meta.get("total_ms", 0) or 0)
+    tool_calls_count = int(meta.get("tool_calls", 0) or 0)
+
+    has_error = backend in {"error", "cloud-error"} or any(
+        isinstance(s, dict) and s.get("type") == "error" for s in steps
+    )
+    if has_error:
+        overall_badge = format_badge_html("error")
+    elif backend in {"local", "cloud"}:
+        overall_badge = format_badge_html("live")
+    else:
+        overall_badge = format_badge_html("demo")
+
+    with st.expander("Как агент пришёл к ответу", expanded=False):
+        st.markdown(
+            f"""
+            <div class="cp-trace-meta">
+                {overall_badge}
+                <span>Модель: <strong>{model_name}</strong></span>
+                <span>Вызовов MCP: <strong>{tool_calls_count}</strong></span>
+                <span>Время: <strong>{total_ms} мс</strong></span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        for idx, step in enumerate(steps, start=1):
+            if not isinstance(step, dict):
+                continue
+            stype = str(step.get("type", "thought"))
+            type_label = html.escape(_STEP_TYPE_LABELS.get(stype, stype))
+            tool_name = step.get("name")
+            tool_html = (
+                f'<span class="cp-step-tool">{html.escape(str(tool_name))}</span>'
+                if tool_name
+                else ""
+            )
+            dur = step.get("duration_ms")
+            dur_html = f"<span>{int(dur)} мс</span>" if dur is not None else ""
+
+            if stype == "error":
+                badge_html = format_badge_html("error")
+            elif step.get("source"):
+                badge_html = format_badge_html(str(step.get("source")))
+            else:
+                badge_html = ""
+
+            body_parts: list[str] = []
+            if step.get("thought"):
+                body_parts.append(
+                    f'<div class="cp-step-body">{html.escape(str(step["thought"]))}</div>'
+                )
+            if step.get("args") is not None:
+                args_json = html.escape(
+                    json.dumps(step["args"], ensure_ascii=False, indent=2)
+                )
+                body_parts.append(
+                    f'<details class="cp-step-details"><summary>Аргументы вызова</summary><pre>{args_json}</pre></details>'
+                )
+            if step.get("result") is not None:
+                res_json = html.escape(
+                    json.dumps(step["result"], ensure_ascii=False, indent=2)
+                )
+                body_parts.append(
+                    f'<details class="cp-step-details"><summary>Результат JSON</summary><pre>{res_json}</pre></details>'
+                )
+
+            body_html = "".join(body_parts)
+            st.markdown(
+                f"""
+                <div class="cp-step-card">
+                    <div class="cp-step-header">
+                        <span class="cp-step-title">#{idx} {type_label} {tool_html}</span>
+                        <span style="display:inline-flex;align-items:center;gap:8px;color:var(--cp-text-muted);font-size:12px;">
+                            {dur_html}
+                            {badge_html}
+                        </span>
+                    </div>
+                    {body_html}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
