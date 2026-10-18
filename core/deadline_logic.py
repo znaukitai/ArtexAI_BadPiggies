@@ -244,3 +244,135 @@ def parse_syllabus_candidates(text: str, default_course: str = "General") -> Lis
         )
 
     return candidates
+
+
+PRIORITY_RU: Dict[str, str] = {
+    "critical": "критично",
+    "high": "высокий",
+    "medium": "средний",
+    "low": "низкий",
+}
+
+URGENCY_RU: Dict[str, str] = {
+    "overdue": "Просрочено",
+    "today": "Сегодня",
+    "urgent": "Срочно",
+    "normal": "В планах",
+}
+
+MONTH_RU: Dict[int, str] = {
+    1: "янв",
+    2: "фев",
+    3: "мар",
+    4: "апр",
+    5: "мая",
+    6: "июн",
+    7: "июл",
+    8: "авг",
+    9: "сен",
+    10: "окт",
+    11: "ноя",
+    12: "дек",
+}
+
+
+def format_date_ru(date_str: str, with_year: bool = False) -> str:
+    """Format ISO date YYYY-MM-DD into Russian short format like '20 окт' or '20 окт 2026'."""
+    try:
+        dt = parse_iso_date(str(date_str).strip())
+        mon = MONTH_RU.get(dt.month, "")
+        return f"{dt.day} {mon} {dt.year}" if with_year else f"{dt.day} {mon}"
+    except ValueError:
+        return str(date_str)
+
+
+def format_days_left_ru(days_left: int) -> str:
+    """Format remaining days into standard Russian label."""
+    if days_left < 0:
+        return f"просрочено на {abs(days_left)} дн."
+    if days_left == 0:
+        return "сегодня"
+    return f"{days_left} дн."
+
+
+def format_priority_ru(priority: str) -> str:
+    """Translate English priority code into Russian."""
+    raw = str(priority).strip().lower()
+    if raw in PRIORITY_RU.values():
+        return raw
+    return PRIORITY_RU.get(raw, "средний")
+
+
+def format_urgency_ru(urgency: str) -> str:
+    """Translate urgency bucket into Russian label."""
+    raw = str(urgency).strip().lower()
+    return URGENCY_RU.get(raw, "В планах")
+
+
+def complete_deadline(
+    deadlines: List[Dict[str, Any]],
+    deadline_id: str,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Mark a deadline as completed by ID without mutating input records."""
+    updated: List[Dict[str, Any]] = []
+    found = False
+    target = str(deadline_id).strip()
+    for item in deadlines:
+        if not isinstance(item, dict):
+            continue
+        copy_item = dict(item)
+        if str(copy_item.get("id", "")) == target:
+            copy_item["status"] = "completed"
+            found = True
+        updated.append(copy_item)
+    return updated, found
+
+
+def delete_deadline(
+    deadlines: List[Dict[str, Any]],
+    deadline_id: str,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Remove a deadline by ID and return (remaining_deadlines, found)."""
+    updated: List[Dict[str, Any]] = []
+    found = False
+    target = str(deadline_id).strip()
+    for item in deadlines:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("id", "")) == target:
+            found = True
+            continue
+        updated.append(dict(item))
+    return updated, found
+
+
+def group_deadlines_by_horizon(
+    deadlines: List[Dict[str, Any]],
+    reference_date: date,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Group active deadlines into overdue, today, this_week, and later buckets."""
+    enriched = enrich_and_filter_deadlines(
+        deadlines=deadlines,
+        reference_date=reference_date,
+        days_ahead=None,
+        include_completed=False,
+    )
+    groups: Dict[str, List[Dict[str, Any]]] = {
+        "overdue": [],
+        "today": [],
+        "this_week": [],
+        "later": [],
+    }
+    for task in enriched:
+        days_left = int(task.get("days_left", 0))
+        if days_left < 0:
+            groups["overdue"].append(task)
+        elif days_left == 0:
+            groups["today"].append(task)
+        elif days_left <= 7:
+            groups["this_week"].append(task)
+        else:
+            groups["later"].append(task)
+    return groups
+
+
