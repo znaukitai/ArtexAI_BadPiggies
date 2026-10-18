@@ -149,3 +149,40 @@ def test_valid_deadline_query_triggers_tools() -> None:
     tool_names = [s.name for s in res.steps if s.type == "tool_call"]
     assert "get_today" in tool_names
     assert "list_deadlines" in tool_names
+
+
+def test_invalid_api_key_reports_explicit_error_without_silent_fallback() -> None:
+    from unittest.mock import patch
+
+    with patch("agent.campuspulse_agent.CampusPulseAgent") as patched_cls:
+        instance = patched_cls.return_value
+        instance.query.return_value = {
+            "answer": "Неверный ключ Gemini API или доступ запрещён (HTTP 401/403).",
+            "steps": [
+                {
+                    "index": 0,
+                    "type": "error",
+                    "thought": "401 API_KEY_INVALID",
+                    "source": "live",
+                    "started_at": "2026-10-18T12:00:00+05:00",
+                    "duration_ms": 12,
+                }
+            ],
+            "state": {"deadlines": []},
+            "meta": {
+                "model": "gemini-3.8-flash",
+                "backend": "error",
+                "tool_calls": 0,
+                "session_id": "s1",
+            },
+        }
+        gw = Gateway("local", api_key="invalid-key-123")
+        res = gw.query("Какие дедлайны на сегодня?", {"deadlines": []})
+        assert "Неверный ключ Gemini API" in res.answer
+        assert gw.backend.mode_kind == "error"
+        assert "Ошибка" in gw.backend.status
+        assert res.meta.get("backend") == "error"
+
+
+
+
