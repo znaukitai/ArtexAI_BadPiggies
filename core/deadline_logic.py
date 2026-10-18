@@ -308,3 +308,71 @@ def format_urgency_ru(urgency: str) -> str:
     raw = str(urgency).strip().lower()
     return URGENCY_RU.get(raw, "В планах")
 
+
+def complete_deadline(
+    deadlines: List[Dict[str, Any]],
+    deadline_id: str,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Mark a deadline as completed by ID without mutating input records."""
+    updated: List[Dict[str, Any]] = []
+    found = False
+    target = str(deadline_id).strip()
+    for item in deadlines:
+        if not isinstance(item, dict):
+            continue
+        copy_item = dict(item)
+        if str(copy_item.get("id", "")) == target:
+            copy_item["status"] = "completed"
+            found = True
+        updated.append(copy_item)
+    return updated, found
+
+
+def delete_deadline(
+    deadlines: List[Dict[str, Any]],
+    deadline_id: str,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Remove a deadline by ID and return (remaining_deadlines, found)."""
+    updated: List[Dict[str, Any]] = []
+    found = False
+    target = str(deadline_id).strip()
+    for item in deadlines:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("id", "")) == target:
+            found = True
+            continue
+        updated.append(dict(item))
+    return updated, found
+
+
+def group_deadlines_by_horizon(
+    deadlines: List[Dict[str, Any]],
+    reference_date: date,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Group active deadlines into overdue, today, this_week, and later buckets."""
+    enriched = enrich_and_filter_deadlines(
+        deadlines=deadlines,
+        reference_date=reference_date,
+        days_ahead=None,
+        include_completed=False,
+    )
+    groups: Dict[str, List[Dict[str, Any]]] = {
+        "overdue": [],
+        "today": [],
+        "this_week": [],
+        "later": [],
+    }
+    for task in enriched:
+        days_left = int(task.get("days_left", 0))
+        if days_left < 0:
+            groups["overdue"].append(task)
+        elif days_left == 0:
+            groups["today"].append(task)
+        elif days_left <= 7:
+            groups["this_week"].append(task)
+        else:
+            groups["later"].append(task)
+    return groups
+
+

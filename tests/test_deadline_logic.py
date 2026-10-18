@@ -157,3 +157,38 @@ def test_russian_formatting_helpers() -> None:
     assert format_date_ru("2026-10-20") == "20 окт"
     assert format_date_ru("2026-10-20", with_year=True) == "20 окт 2026"
 
+
+def test_complete_delete_and_group_deadlines() -> None:
+    from core.deadline_logic import (
+        complete_deadline,
+        delete_deadline,
+        group_deadlines_by_horizon,
+    )
+
+    ref = date(2026, 10, 18)
+    raw = [
+        {"id": "d-over", "course": "C1", "title": "Overdue Task", "due_date": "2026-10-16", "priority": "high", "status": "pending"},
+        {"id": "d-today", "course": "C2", "title": "Today Task", "due_date": "2026-10-18", "priority": "critical", "status": "pending"},
+        {"id": "d-week-low", "course": "C3", "title": "Week Low", "due_date": "2026-10-20", "priority": "low", "status": "pending"},
+        {"id": "d-week-crit", "course": "C4", "title": "Week Crit", "due_date": "2026-10-20", "priority": "critical", "status": "pending"},
+        {"id": "d-later", "course": "C5", "title": "Later Task", "due_date": "2026-11-05", "priority": "medium", "status": "pending"},
+    ]
+
+    groups = group_deadlines_by_horizon(raw, ref)
+    assert [x["id"] for x in groups["overdue"]] == ["d-over"]
+    assert [x["id"] for x in groups["today"]] == ["d-today"]
+    assert [x["id"] for x in groups["this_week"]] == ["d-week-crit", "d-week-low"]
+    assert [x["id"] for x in groups["later"]] == ["d-later"]
+
+    after_done, found_done = complete_deadline(raw, "d-today")
+    assert found_done is True
+    groups_after_done = group_deadlines_by_horizon(after_done, ref)
+    assert groups_after_done["today"] == []
+
+    after_del, found_del = delete_deadline(after_done, "d-over")
+    assert found_del is True
+    assert len(after_del) == 4
+    groups_after_del = group_deadlines_by_horizon(after_del, ref)
+    assert groups_after_del["overdue"] == []
+
+

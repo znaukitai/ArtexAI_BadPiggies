@@ -171,7 +171,7 @@ with st.sidebar:
         if st.button("", icon=":material/add:", key="plus_action_btn", help="Добавить или выполнить действие"):
             open_action_dialog(workspace)
 
-    render_deadlines(workspace["state"])
+    render_deadlines(workspace["state"], workspace=workspace)
 
 selected_prompt = None
 
@@ -215,7 +215,11 @@ for message in workspace["messages"]:
         else:
             st.error(message["content"])
 
-typed_prompt = st.chat_input("Спросите о дедлайнах, GitHub или аудитории в кампусе...", max_chars=10000)
+typed_prompt = st.chat_input(
+    "Спросите о дедлайнах, GitHub или аудитории в кампусе...",
+    max_chars=10000,
+    key="chat_input_box",
+)
 
 if prompt := selected_prompt or typed_prompt:
     workspace["messages"].append({"role": "user", "content": prompt})

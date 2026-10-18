@@ -12,10 +12,13 @@ import streamlit as st
 
 from core.deadline_logic import (
     calculate_urgency,
+    complete_deadline,
+    delete_deadline,
     format_date_ru,
     format_days_left_ru,
     format_priority_ru,
     format_urgency_ru,
+    group_deadlines_by_horizon,
 )
 from frontend.gateway import ZONE
 from frontend.icons import get_icon
@@ -566,64 +569,164 @@ def format_badge_html(source: str | None) -> str:
     return '<span class="cp-badge cp-badge-demo"><span class="cp-badge-dot"></span>DEMO</span>'
 
 
-def render_deadlines(state: dict[str, Any]) -> None:
-    """Render compact deadline list in the sidebar."""
+_GROUP_LABELS_RU = [
+    ("overdue", "Просрочено"),
+    ("today", "Сегодня"),
+    ("this_week", "На этой неделе"),
+    ("later", "Позже"),
+]
+
+
+def _render_single_deadline_card(
+    task: dict[str, Any],
+    today: date,
+    state: dict[str, Any],
+) -> None:
+    """Render one deadline card and its quick action buttons."""
+    from mcp_servers.academic_schedule import set_deadline_store
+
+    task_id = str(task.get("id", ""))
+    raw_title = str(task.get("title", "Без названия"))
+    raw_course = str(task.get("course", "Курс"))
+    title = html.escape(raw_title)
+    course = html.escape(raw_course)
+    raw_due = str(task.get("due_date", "—"))
+    due_str = html.escape(format_date_ru(raw_due))
+    prio_ru = html.escape(format_priority_ru(str(task.get("priority", "medium"))))
+
+    try:
+        delta, urg_code = calculate_urgency(raw_due, today)
+        urg_ru = format_urgency_ru(urg_code)
+        days_ru = format_days_left_ru(delta)
+        urg_icon = (
+            get_icon("alert_triangle")
+            if urg_code in {"overdue", "urgent"}
+            else get_icon("clock")
+        )
+        badge_text = html.escape(f"{urg_ru} · {days_ru}")
+        badge = f'<span style="display:inline-flex;align-items:center;gap:4px;">{urg_icon}<span>{badge_text}</span></span>'
+    except ValueError:
+        badge = "—"
+
+    source_badge = (
+        format_badge_html("demo")
+        if str(task.get("source", "demo")).lower() == "demo"
+        else ""
+    )
+    cal_icon = get_icon("calendar")
+
+    st.markdown(
+        f"""
+        <div class="dl-item">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                <div class="dl-course">{course}</div>
+                {source_badge}
+            </div>
+            <div class="dl-title">{title}</div>
+            <div class="dl-meta">
+                <span style="display:inline-flex;align-items:center;gap:4px;">{cal_icon}<span>{due_str} · {prio_ru}</span></span>
+                {badge}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    confirm_key = f"confirm_del_{task_id}"
+    if st.session_state.get(confirm_key):
+        st.caption("Удалить эту задачу?")
+        c_yes, c_no = st.columns(2)
+        with c_yes:
+            if st.button("Да, удалить", key=f"del_yes_{task_id}", use_container_width=True):
+                updated, _ = delete_deadline(state.get("deadlines", []), task_id)
+                state["deadlines"] = updated
+                set_deadline_store(updated)
+                st.session_state.pop(confirm_key, None)
+                st.rerun()
+        with c_no:
+            if st.button("Отмена", key=f"del_no_{task_id}", use_container_width=True):
+                st.session_state.pop(confirm_key, None)
+                st.rerun()
+    else:
+        c_done, c_ask, c_del = st.columns([1, 1, 1])
+        with c_done:
+            if st.button(
+                "",
+                icon=":material/check:",
+                key=f"done_{task_id}",
+                help="Выполнено",
+                use_container_width=True,
+            ):
+                updated, _ = complete_deadline(state.get("deadlines", []), task_id)
+                state["deadlines"] = updated
+                set_deadline_store(updated)
+                st.rerun()
+        with c_ask:
+            if st.button(
+                "",
+                icon=":material/chat:",
+                key=f"ask_{task_id}",
+                help="Спросить агента",
+                use_container_width=True,
+            ):
+                st.session_state["chat_input_box"] = (
+                    f"С чего начать по задаче «{raw_title}» ({raw_course})?"
+                )
+                st.rerun()
+        with c_del:
+            if st.button(
+                "",
+                icon=":material/delete:",
+                key=f"del_{task_id}",
+                help="Удалить",
+                use_container_width=True,
+            ):
+                st.session_state[confirm_key] = True
+                st.rerun()
+
+
+def render_deadlines(
+    state: dict[str, Any],
+    workspace: dict[str, Any] | None = None,
+) -> None:
+    """Render smart grouped deadline panel in the sidebar (NEW-02)."""
     deadlines = state.get("deadlines", [])
     if not isinstance(deadlines, list):
         return
 
-    active = [
-        d for d in deadlines
-        if isinstance(d, dict) and d.get("status") not in {"done", "completed"}
-    ]
-    if not active:
-        st.caption("Дедлайнов пока нет")
-        return
-
     today = datetime.now(ZONE).date()
-    for task in sorted(active, key=lambda d: str(d.get("due_date", "9999"))):
-        title = html.escape(str(task.get("title", "Без названия")))
-        course = html.escape(str(task.get("course", "Курс")))
-        raw_due = str(task.get("due_date", "—"))
-        due_str = html.escape(format_date_ru(raw_due))
-        prio_ru = html.escape(format_priority_ru(str(task.get("priority", "medium"))))
-        try:
-            delta, urg_code = calculate_urgency(raw_due, today)
-            urg_ru = format_urgency_ru(urg_code)
-            days_ru = format_days_left_ru(delta)
-            urg_icon = (
-                get_icon("alert_triangle")
-                if urg_code in {"overdue", "urgent"}
-                else get_icon("clock")
-            )
-            badge_text = html.escape(f"{urg_ru} · {days_ru}")
-            badge = f'<span style="display:inline-flex;align-items:center;gap:4px;">{urg_icon}<span>{badge_text}</span></span>'
-        except ValueError:
-            badge = "—"
+    groups = group_deadlines_by_horizon(deadlines, today)
+    total_active = sum(len(items) for items in groups.values())
 
-        source_badge = (
-            format_badge_html("demo")
-            if str(task.get("source", "demo")).lower() == "demo"
-            else ""
-        )
-        cal_icon = get_icon("calendar")
-
+    if total_active == 0:
         st.markdown(
-            f"""
-            <div class="dl-item">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-                    <div class="dl-course">{course}</div>
-                    {source_badge}
-                </div>
-                <div class="dl-title">{title}</div>
-                <div class="dl-meta">
-                    <span style="display:inline-flex;align-items:center;gap:4px;">{cal_icon}<span>{due_str} · {prio_ru}</span></span>
-                    {badge}
-                </div>
-            </div>
-            """,
+            '<div style="text-align:center;padding:14px 8px;color:var(--cp-text-muted);font-size:13px;">Дедлайнов пока нет</div>',
             unsafe_allow_html=True,
         )
+        col_l, col_c, col_r = st.columns([2, 1, 2])
+        with col_c:
+            if st.button("", icon=":material/add:", key="empty_plus_btn", help="Добавить дедлайн"):
+                if workspace is not None:
+                    open_action_dialog(workspace, "Добавить дедлайн")
+        return
+
+    for group_key, group_title_ru in _GROUP_LABELS_RU:
+        items = groups.get(group_key, [])
+        if not items:
+            continue
+        header_label = f"{group_title_ru} ({len(items)})"
+        if group_key == "later":
+            with st.expander(header_label, expanded=False):
+                for task in items:
+                    _render_single_deadline_card(task, today, state)
+        else:
+            st.markdown(
+                f'<div style="font-size:12px;font-weight:600;color:var(--cp-text-muted);text-transform:uppercase;letter-spacing:0.04em;margin:10px 0 6px 0;">{html.escape(header_label)}</div>',
+                unsafe_allow_html=True,
+            )
+            for task in items:
+                _render_single_deadline_card(task, today, state)
+
 
 
 _STEP_TYPE_LABELS = {
