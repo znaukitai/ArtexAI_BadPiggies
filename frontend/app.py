@@ -10,7 +10,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import streamlit as st
-import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from frontend.gateway import DEFAULT_REPO, Gateway, GatewayError
@@ -34,6 +33,10 @@ if "gemini_api_key" not in st.session_state:
     st.session_state.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 if "github_repo" not in st.session_state:
     st.session_state.github_repo = os.getenv("GITHUB_REPOSITORY", DEFAULT_REPO) or DEFAULT_REPO
+if "gcp_project" not in st.session_state:
+    st.session_state.gcp_project = os.getenv("GOOGLE_CLOUD_PROJECT", "")
+if "vertex_resource" not in st.session_state:
+    st.session_state.vertex_resource = os.getenv("VERTEX_AGENT_RESOURCE", "")
 
 inject_theme(st.session_state.theme)
 
@@ -64,13 +67,37 @@ with st.sidebar:
         )
         mode = "local" if mode_label == "Local" else "cloud"
 
-        api_key_input = st.text_input(
-            "Gemini API Key",
-            value=st.session_state.gemini_api_key,
-            type="password",
-            placeholder="AIza...",
-            help="Необязательно. Ключ хранится только в памяти текущей сессии.",
-        )
+        if mode == "local":
+            api_key_input = st.text_input(
+                "Gemini API Key",
+                value=st.session_state.gemini_api_key,
+                type="password",
+                placeholder="AIza...",
+                help="Необязательно. Ключ хранится только в памяти текущей сессии.",
+            )
+            if api_key_input.strip() != st.session_state.gemini_api_key:
+                st.session_state.gemini_api_key = api_key_input.strip()
+                st.session_state.pop("workspace", None)
+        else:
+            gcp_proj_input = st.text_input(
+                "Google Cloud Project ID",
+                value=st.session_state.gcp_project,
+                placeholder="my-gcp-project-id",
+                help="ID проекта Google Cloud для Vertex AI (требуется ADC: gcloud auth application-default login).",
+            )
+            vertex_res_input = st.text_input(
+                "Vertex Agent Resource (опционально)",
+                value=st.session_state.vertex_resource,
+                placeholder="projects/.../locations/.../reasoningEngines/...",
+                help="Оставьте пустым для прямого вызова Gemini через Vertex AI ADC.",
+            )
+            if gcp_proj_input.strip() != st.session_state.gcp_project:
+                st.session_state.gcp_project = gcp_proj_input.strip()
+                st.session_state.pop("workspace", None)
+            if vertex_res_input.strip() != st.session_state.vertex_resource:
+                st.session_state.vertex_resource = vertex_res_input.strip()
+                st.session_state.pop("workspace", None)
+
         repo_input = st.text_input(
             "GitHub репозиторий",
             value=st.session_state.github_repo,
@@ -79,9 +106,6 @@ with st.sidebar:
         if repo_input.strip() and repo_input.strip() != st.session_state.github_repo:
             st.session_state.github_repo = repo_input.strip()
             os.environ["GITHUB_REPOSITORY"] = st.session_state.github_repo
-        if api_key_input.strip() != st.session_state.gemini_api_key:
-            st.session_state.gemini_api_key = api_key_input.strip()
-            st.session_state.pop("workspace", None)
 
     if st.session_state.get("mode") != mode:
         st.session_state.pop("workspace", None)
@@ -89,7 +113,12 @@ with st.sidebar:
 
     if "workspace" not in st.session_state:
         try:
-            gateway = Gateway(mode, api_key=st.session_state.gemini_api_key)
+            gateway = Gateway(
+                mode,
+                api_key=st.session_state.gemini_api_key,
+                project=st.session_state.gcp_project,
+                resource=st.session_state.vertex_resource,
+            )
             st.session_state.workspace = {
                 "gateway": gateway,
                 "state": {"deadlines": get_default_deadlines()},
@@ -97,8 +126,14 @@ with st.sidebar:
                 "status": gateway.backend.status,
             }
         except GatewayError as exc:
-            st.error(str(exc))
-            st.stop()
+            st.warning(str(exc))
+            fallback_gw = Gateway("local", api_key=st.session_state.gemini_api_key)
+            st.session_state.workspace = {
+                "gateway": fallback_gw,
+                "state": {"deadlines": get_default_deadlines()},
+                "messages": [],
+                "status": str(exc),
+            }
 
     workspace = st.session_state.workspace
     st.caption(workspace["status"])
@@ -137,7 +172,12 @@ if not workspace["messages"]:
 with st.expander("Интерактивная карта кампуса AITU", icon=":material/map:"):
     st.caption("Корпуса C1.1–C1.3, этажи 1–3. Спросите номер кабинета в чате или откройте схему.")
     st.link_button("Открыть карту в новой вкладке", "https://yuujiso.github.io/aitumap/")
-    components.iframe("https://yuujiso.github.io/aitumap/", height=560, scrolling=False)
+    if hasattr(st, "iframe"):
+        st.iframe("https://yuujiso.github.io/aitumap/", height=560)
+    else:
+        import streamlit.components.v1 as components
+
+        components.iframe("https://yuujiso.github.io/aitumap/", height=560, scrolling=False)
 
 user_avatar = get_avatar_uri("user", st.session_state.theme)
 assistant_avatar = get_avatar_uri("assistant", st.session_state.theme)
