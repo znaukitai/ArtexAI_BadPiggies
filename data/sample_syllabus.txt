@@ -1,0 +1,11 @@
+CS302: Advanced Algorithms and Data Structures
+Семестр: 07.09.2026–20.12.2026. Часовой пояс: Asia/Almaty (UTC+05:00).
+
+CS302 - Лабораторная 1: Dynamic Array due 2026-09-20 [medium]
+CS302 - Лабораторная 2: Hash Table and Heap due 2026-10-04 [medium]
+CS302 - Лабораторная 3: Graph Toolkit due 2026-10-21 [high]
+CS302 - Midterm Exam due 2026-10-30 [critical]
+CS302 - Лабораторная 4: Dynamic Programming due 2026-11-15 [high]
+CS302 - Лабораторная 5: String Search due 2026-11-29 [high]
+CS302 - Курсовой проект: сравнение алгоритмов due 2026-12-13 [critical]
+CS302 - Final Exam due 2026-12-18 [critical]

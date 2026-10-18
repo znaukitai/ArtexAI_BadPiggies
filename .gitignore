@@ -1,0 +1,58 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+*service-account*.json
+application_default_credentials.json
+
+# Virtual Environments & Packages
+.venv/
+venv/
+env/
+ENV/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# Build, Dist & Deployment Artifacts
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+.deploy/
+*.zip
+*.tar.gz
+*.log
+
+# IDE & OS Files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
