@@ -13,6 +13,29 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
+# Static imports for PyInstaller dependency analysis when bundling CampusPulse.exe
+if False:  # pragma: no cover
+    import dotenv  # noqa: F401
+    import fastmcp  # noqa: F401
+    import google.genai  # noqa: F401
+    import httpx  # noqa: F401
+    import mcp.server.fastmcp  # noqa: F401
+    import pydantic  # noqa: F401
+    import streamlit.runtime.scriptrunner.magic_funcs  # noqa: F401
+    import streamlit.web.cli  # noqa: F401
+    import tzdata  # noqa: F401
+
+    import agent.campuspulse_agent  # noqa: F401
+    import agent.mcp_bridge  # noqa: F401
+    import agent.models  # noqa: F401
+    import agent.prompts  # noqa: F401
+    import core.deadline_logic  # noqa: F401
+    import frontend.gateway  # noqa: F401
+    import frontend.icons  # noqa: F401
+    import frontend.ui_components  # noqa: F401
+    import mcp_servers.academic_schedule  # noqa: F401
+    import mcp_servers.campus_services  # noqa: F401
+
 
 def resolve_app_root() -> Path:
     """Return base directory whether running from source or PyInstaller bundle."""
@@ -56,6 +79,7 @@ def run_streamlit_worker(app_path: str, port: int) -> int:
         f"--server.port={port}",
         "--server.address=127.0.0.1",
         "--server.headless=true",
+        "--runner.magicEnabled=false",
         "--browser.gatherUsageStats=false",
         "--global.developmentMode=false",
     ]
@@ -72,6 +96,17 @@ def main() -> int:
     if not app_file.exists():
         print(f"[CampusPulse] Файл приложения не найден: {app_file}", file=sys.stderr)
         return 1
+
+    if "--self-test" in sys.argv:
+        from streamlit.testing.v1 import AppTest
+
+        at = AppTest.from_file(str(app_file)).run(timeout=25)
+        if list(at.exception):
+            for exc in at.exception:
+                print(f"[CampusPulse Self-Test Error] {exc.value}", file=sys.stderr)
+            return 1
+        print("[CampusPulse Self-Test] OK: frontend/app.py executed with 0 exceptions.")
+        return 0
 
     if "--worker" in sys.argv:
         idx = sys.argv.index("--worker")
@@ -100,6 +135,7 @@ def main() -> int:
             f"--server.port={port}",
             "--server.address=127.0.0.1",
             "--server.headless=true",
+            "--runner.magicEnabled=false",
             "--browser.gatherUsageStats=false",
         ]
 

@@ -1,4 +1,4 @@
-"""Run from project root: python -m streamlit run frontend/app.py."""
+# Run from project root: python -m streamlit run frontend/app.py
 
 import html
 import os

@@ -2,6 +2,9 @@
 toolbarMode = "minimal"
 showErrorDetails = false
 
+[runner]
+magicEnabled = false
+
 [browser]
 gatherUsageStats = false
 
