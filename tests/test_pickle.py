@@ -3,11 +3,11 @@
 from unittest.mock import MagicMock, patch
 import cloudpickle
 
-from agent.campuspulse_agent import CampusPulseAgent
+from agent.artex_agent import ArtexAgent
 
 
 def test_agent_init_contains_only_primitives() -> None:
-    agent = CampusPulseAgent(
+    agent = ArtexAgent(
         model="gemini-2.5-flash",
         project="aitu-campus",
         location="us-central1",
@@ -21,7 +21,7 @@ def test_agent_init_contains_only_primitives() -> None:
 
 @patch("google.genai.Client")
 def test_cloudpickle_roundtrip_and_setup(mock_genai_client: MagicMock) -> None:
-    agent = CampusPulseAgent(
+    agent = ArtexAgent(
         model="gemini-2.5-flash",
         project="aitu-campus",
         location="us-central1",
@@ -32,7 +32,7 @@ def test_cloudpickle_roundtrip_and_setup(mock_genai_client: MagicMock) -> None:
     assert isinstance(payload, bytes)
     assert len(payload) > 0
 
-    restored: CampusPulseAgent = cloudpickle.loads(payload)
+    restored: ArtexAgent = cloudpickle.loads(payload)
     assert restored.model == "gemini-2.5-flash"
     assert restored.project == "aitu-campus"
     assert restored.location == "us-central1"

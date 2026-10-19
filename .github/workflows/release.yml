@@ -31,33 +31,33 @@ jobs:
       - name: Run test suite
         run: python -m pytest -q
 
-      - name: Build CampusPulse.exe and CampusPulse_Setup.exe
+      - name: Build ArtexAI.exe and ArtexAI_Setup.exe
         run: python scripts/build_exe.py
 
-      - name: Smoke test frozen CampusPulse.exe
-        run: dist\CampusPulse\CampusPulse.exe --self-test
+      - name: Smoke test frozen ArtexAI.exe
+        run: dist\Artex AI\ArtexAI.exe --self-test
 
       - name: Build Inno Setup installer (if ISCC available)
         shell: pwsh
         run: |
           if (Get-Command iscc -ErrorAction SilentlyContinue) {
-            iscc installer/CampusPulse_Setup.iss
+            iscc installer/ArtexAI_Setup.iss
           }
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: CampusPulse-Windows-Release
+          name: Artex AI-Windows-Release
           path: |
-            dist/CampusPulse-win64.zip
-            dist/CampusPulse_Setup.exe
-            dist/CampusPulse/CampusPulse.exe
+            dist/ArtexAI-win64.zip
+            dist/ArtexAI_Setup.exe
+            dist/Artex AI/ArtexAI.exe
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/CampusPulse-win64.zip
-            dist/CampusPulse_Setup.exe
+            dist/ArtexAI-win64.zip
+            dist/ArtexAI_Setup.exe
           generate_release_notes: true

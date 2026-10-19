@@ -1,4 +1,4 @@
-"""Standalone launcher for CampusPulse (starts Streamlit server and opens browser)."""
+"""Standalone launcher for Artex AI (starts Streamlit server and opens browser)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
-# Static imports for PyInstaller dependency analysis when bundling CampusPulse.exe
+# Static imports for PyInstaller dependency analysis when bundling ArtexAI.exe
 if False:  # pragma: no cover
     import dotenv  # noqa: F401
     import fastmcp  # noqa: F401
@@ -25,7 +25,7 @@ if False:  # pragma: no cover
     import streamlit.web.cli  # noqa: F401
     import tzdata  # noqa: F401
 
-    import agent.campuspulse_agent  # noqa: F401
+    import agent.artex_agent  # noqa: F401
     import agent.mcp_bridge  # noqa: F401
     import agent.models  # noqa: F401
     import agent.prompts  # noqa: F401
@@ -94,7 +94,7 @@ def main() -> int:
 
     app_file = root / "frontend" / "app.py"
     if not app_file.exists():
-        print(f"[CampusPulse] Файл приложения не найден: {app_file}", file=sys.stderr)
+        print(f"[Artex AI] Файл приложения не найден: {app_file}", file=sys.stderr)
         return 1
 
     if "--self-test" in sys.argv:
@@ -103,9 +103,9 @@ def main() -> int:
         at = AppTest.from_file(str(app_file)).run(timeout=25)
         if list(at.exception):
             for exc in at.exception:
-                print(f"[CampusPulse Self-Test Error] {exc.value}", file=sys.stderr)
+                print(f"[Artex AI Self-Test Error] {exc.value}", file=sys.stderr)
             return 1
-        print("[CampusPulse Self-Test] OK: frontend/app.py executed with 0 exceptions.")
+        print("[Artex AI Self-Test] OK: frontend/app.py executed with 0 exceptions.")
         return 0
 
     if "--worker" in sys.argv:
@@ -117,7 +117,7 @@ def main() -> int:
     url = f"http://localhost:{port}"
 
     print("=" * 60)
-    print("  CampusPulse — ИИ-помощник студента AITU")
+    print("  Artex AI — ИИ-помощник студента AITU")
     print(f"  Запуск локального сервера на {url} ...")
     print("  Не закрывайте это окно во время работы приложения.")
     print("  При закрытии окна сервер автоматически остановится.")
@@ -159,10 +159,10 @@ def main() -> int:
     signal.signal(signal.SIGTERM, _sig_handler)
 
     if wait_for_health(port, timeout_sec=35.0):
-        print(f"[CampusPulse] Сервер готов. Открываю браузер: {url}")
+        print(f"[Artex AI] Сервер готов. Открываю браузер: {url}")
         webbrowser.open(url)
     else:
-        print(f"[CampusPulse] Откройте в браузере вручную: {url}")
+        print(f"[Artex AI] Откройте в браузере вручную: {url}")
 
     try:
         return proc.wait()

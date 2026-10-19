@@ -1,4 +1,4 @@
-"""Theme tokens, WCAG-checked Dark/Light palettes, and seamless CSS injection for CampusPulse."""
+"""Theme tokens, WCAG-checked Dark/Light palettes, and seamless CSS injection for Artex AI."""
 
 from __future__ import annotations
 

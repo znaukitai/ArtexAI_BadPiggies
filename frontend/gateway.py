@@ -107,7 +107,7 @@ try:
 except ModuleNotFoundError:
     AgentResponse = _AgentResponse  # type: ignore[misc,assignment]
 
-from agent.campuspulse_agent import is_unrecognized_or_offtopic, _classify_api_error
+from agent.artex_agent import is_unrecognized_or_offtopic, _classify_api_error
 from core.input_normalization import normalize_room_query, normalize_api_key, is_greeting, GREETING
 from agent.mcp_bridge import InMemoryMCPBridge
 from agent.prompts import UNRECOGNIZED_QUERY_MESSAGE
@@ -135,7 +135,7 @@ class LocalBackend:
     def __init__(self, mode: str | None = None, api_key: str | None = None) -> None:
         # Never mutate os.environ with user-entered key; keep in instance memory only
         self._api_key = normalize_api_key(api_key) or normalize_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
-        mode = mode or os.getenv("CAMPUSPULSE_LOCAL_MODE", "auto")
+        mode = mode or os.getenv("ARTEX_LOCAL_MODE", "auto")
         if mode not in {"auto", "demo"}:
             mode = "auto"
 
@@ -148,8 +148,8 @@ class LocalBackend:
         has_credentials = bool(self._api_key)
         if mode == "auto" and has_credentials:
             try:
-                module = importlib.import_module("agent.campuspulse_agent")
-                self.agent = module.CampusPulseAgent(
+                module = importlib.import_module("agent.artex_agent")
+                self.agent = module.ArtexAgent(
                     model=self.model,
                     api_key=self._api_key,
                 )
@@ -280,7 +280,7 @@ class LocalBackend:
 
                 status_env = call_mcp("github_repo_status", {"repo_url": target_repo})
                 if status_env.get("ok") and status_env.get("data"):
-                    expected_files = ["README.md", "requirements.txt", "agent/campuspulse_agent.py"]
+                    expected_files = ["README.md", "requirements.txt", "agent/artex_agent.py"]
                     check_env = call_mcp(
                         "github_assignment_check",
                         {"repo_url": target_repo, "expected_files": expected_files},
@@ -594,8 +594,8 @@ class CloudBackend:
 
         # Direct Vertex AI Gemini mode with project + location
         try:
-            module = importlib.import_module("agent.campuspulse_agent")
-            cloud_agent = module.CampusPulseAgent(
+            module = importlib.import_module("agent.artex_agent")
+            cloud_agent = module.ArtexAgent(
                 model=self.model,
                 project=self.project,
                 location=self.location,
@@ -652,4 +652,4 @@ class Gateway:
 
 
 def query(user_input: str, state: dict[str, Any]) -> AgentResponse:
-    return Gateway(os.getenv("CAMPUSPULSE_BACKEND", "local")).query(user_input, state)
+    return Gateway(os.getenv("ARTEX_BACKEND", "local")).query(user_input, state)

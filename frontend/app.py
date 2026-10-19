@@ -38,7 +38,7 @@ from frontend.theme import inject_theme
 from mcp_servers.academic_schedule import get_default_deadlines, reset_deadline_store
 
 load_dotenv(ROOT / ".env")
-st.set_page_config(page_title="CampusPulse", layout="wide")
+st.set_page_config(page_title="Artex AI", page_icon=str(ROOT / "assets/artex-ai-mark.png"), layout="wide")
 
 PROMPTS = [
     ("Что горит на этой неделе?", "Что горит на этой неделе и с чего начать?"),
@@ -67,11 +67,11 @@ def _render_sidebar_html(markup: str) -> None:
 
 
 with st.sidebar:
-    brand_svg = icon("logo", size=20)
+    brand_svg = icon("logo", size=32)
     _render_sidebar_html(
         f'<div class="cp-brand-row">'
         f'<span class="cp-brand-icon">{brand_svg}</span>'
-        f"<span>CampusPulse</span>"
+        f"<span>Artex AI</span>"
         f"</div>"
     )
 

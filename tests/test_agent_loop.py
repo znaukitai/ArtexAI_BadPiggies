@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent.campuspulse_agent import CampusPulseAgent, is_unrecognized_or_offtopic
+from agent.artex_agent import ArtexAgent, is_unrecognized_or_offtopic
 from agent.models import AgentResponse
 from frontend.gateway import Gateway
 
@@ -27,7 +27,7 @@ def _make_mock_response(text: str = "", function_calls: list | None = None) -> S
 
 
 def test_agent_reasoning_loop_tool_call_and_final() -> None:
-    agent = CampusPulseAgent(model="gemini-3.8-flash", max_steps=6)
+    agent = ArtexAgent(model="gemini-3.8-flash", max_steps=6)
     agent._bridge = MagicMock()
     agent._bridge.get_callable_tools.return_value = []
     agent._bridge.export_state_after_query.return_value = {"deadlines": []}
@@ -91,7 +91,7 @@ def test_agent_reasoning_loop_tool_call_and_final() -> None:
 
 
 def test_agent_loop_respects_max_steps_guard() -> None:
-    agent = CampusPulseAgent(model="gemini-3.8-flash", max_steps=2)
+    agent = ArtexAgent(model="gemini-3.8-flash", max_steps=2)
     agent._bridge = MagicMock()
     agent._bridge.get_callable_tools.return_value = []
     agent._bridge.export_state_after_query.return_value = {"deadlines": []}
@@ -158,7 +158,7 @@ def test_valid_deadline_query_triggers_tools() -> None:
 def test_invalid_api_key_reports_explicit_error_without_silent_fallback() -> None:
     from unittest.mock import patch
 
-    with patch("agent.campuspulse_agent.CampusPulseAgent") as patched_cls:
+    with patch("agent.artex_agent.ArtexAgent") as patched_cls:
         instance = patched_cls.return_value
         instance.query.return_value = {
             "answer": "Неверный ключ Gemini API или доступ запрещён (HTTP 401/403).",

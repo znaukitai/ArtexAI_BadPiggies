@@ -108,7 +108,7 @@ def _classify_api_error(exc: Exception, model: str) -> str:
     return "Ошибка при вызове модели Gemini API. Проверьте ключ и настройки."
 
 
-class CampusPulseAgent:
+class ArtexAgent:
     """Student assistant agent compatible with Vertex AI Agent Engine."""
 
     def __init__(

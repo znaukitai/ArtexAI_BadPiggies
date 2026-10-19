@@ -1,1 +1,1 @@
-"""Streamlit frontend for CampusPulse."""
+"""Streamlit frontend for Artex AI."""

@@ -1,4 +1,4 @@
-"""UI components for CampusPulse: deadline cards, LIVE/DEMO badge, agent step trace, empty/loading/error states."""
+"""UI components for Artex AI: deadline cards, LIVE/DEMO badge, agent step trace, empty/loading/error states."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Installer that downloads the latest CampusPulse release from GitHub Releases and creates shortcuts."""
+"""Installer that downloads the latest Artex AI release from GitHub Releases and creates shortcuts."""
 
 from __future__ import annotations
 
@@ -12,15 +12,15 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-GITHUB_REPO = os.environ.get("CAMPUSPULSE_RELEASE_REPO", "znaukitai/CampusPulseAI_BadPiggies")
+GITHUB_REPO = os.environ.get("ARTEX_RELEASE_REPO", "znaukitai/CampusPulseAI_BadPiggies")
 RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 
 def get_install_dir() -> Path:
     local_app_data = os.environ.get("LOCALAPPDATA")
     if local_app_data:
-        return Path(local_app_data) / "Programs" / "CampusPulse"
-    return Path.home() / "CampusPulse"
+        return Path(local_app_data) / "Programs" / "ArtexAI"
+    return Path.home() / "ArtexAI"
 
 
 def create_windows_shortcuts(exe_path: Path) -> None:
@@ -28,10 +28,10 @@ def create_windows_shortcuts(exe_path: Path) -> None:
     if not sys.platform.startswith("win"):
         return
 
-    desktop = Path.home() / "Desktop" / "CampusPulse.lnk"
+    desktop = Path.home() / "Desktop" / "Artex AI.lnk"
     appdata = os.environ.get("APPDATA", "")
     start_menu = (
-        Path(appdata) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "CampusPulse.lnk"
+        Path(appdata) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Artex AI.lnk"
         if appdata
         else None
     )
@@ -46,7 +46,8 @@ def create_windows_shortcuts(exe_path: Path) -> None:
             f"$s = $ws.CreateShortcut('{lnk}'); "
             f"$s.TargetPath = '{exe_path}'; "
             f"$s.WorkingDirectory = '{exe_path.parent}'; "
-            "$s.Description = 'CampusPulse — ИИ-помощник студента AITU'; "
+            "$s.Description = 'Artex AI — ИИ-помощник студента AITU'; "
+            f"$s.IconLocation = '{exe_path},0'; "
             "$s.Save()"
         )
         subprocess.run(
@@ -58,10 +59,10 @@ def create_windows_shortcuts(exe_path: Path) -> None:
 
 
 def download_and_install(install_dir: Path) -> Path:
-    print(f"[CampusPulse Setup] Проверка последнего релиза в {GITHUB_REPO} ...")
+    print(f"[Artex AI Setup] Проверка последнего релиза в {GITHUB_REPO} ...")
     req = urllib.request.Request(
         RELEASES_API_URL,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "CampusPulse-Installer/1.0"},
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "Artex AI-Installer/1.0"},
     )
     with urllib.request.urlopen(req, timeout=20) as resp:
         release_data = json.loads(resp.read().decode("utf-8"))
@@ -72,7 +73,7 @@ def download_and_install(install_dir: Path) -> Path:
         (
             a
             for a in assets
-            if str(a.get("name", "")).lower() == "campuspulse.exe"
+            if str(a.get("name", "")).lower() == "artexai.exe"
         ),
         None,
     )
@@ -81,23 +82,23 @@ def download_and_install(install_dir: Path) -> Path:
 
     if zip_asset:
         dl_url = zip_asset["browser_download_url"]
-        print(f"[CampusPulse Setup] Скачивание архива {zip_asset['name']} ...")
+        print(f"[Artex AI Setup] Скачивание архива {zip_asset['name']} ...")
         with tempfile.TemporaryDirectory() as tmp:
             zip_path = Path(tmp) / "release.zip"
             urllib.request.urlretrieve(dl_url, str(zip_path))
-            print(f"[CampusPulse Setup] Распаковка в {install_dir} ...")
+            print(f"[Artex AI Setup] Распаковка в {install_dir} ...")
             with zipfile.ZipFile(zip_path, "r") as zf:
                 zf.extractall(install_dir)
     elif exe_asset:
         dl_url = exe_asset["browser_download_url"]
-        print(f"[CampusPulse Setup] Скачивание {exe_asset['name']} ...")
-        urllib.request.urlretrieve(dl_url, str(install_dir / "CampusPulse.exe"))
+        print(f"[Artex AI Setup] Скачивание {exe_asset['name']} ...")
+        urllib.request.urlretrieve(dl_url, str(install_dir / "ArtexAI.exe"))
     else:
-        raise RuntimeError("В последнем релизе GitHub не найден архив CampusPulse-win64.zip или CampusPulse.exe.")
+        raise RuntimeError("В последнем релизе GitHub не найден архив ArtexAI-win64.zip или ArtexAI.exe.")
 
-    exe_path = install_dir / "CampusPulse.exe"
+    exe_path = install_dir / "ArtexAI.exe"
     if not exe_path.exists():
-        nested = list(install_dir.rglob("CampusPulse.exe"))
+        nested = list(install_dir.rglob("ArtexAI.exe"))
         if nested:
             exe_path = nested[0]
 
@@ -109,13 +110,13 @@ def main() -> int:
     install_dir = get_install_dir()
     try:
         exe_path = download_and_install(install_dir)
-        print(f"[CampusPulse Setup] Установка завершена: {exe_path}")
-        print("[CampusPulse Setup] Ярлыки созданы на Рабочем столе и в меню Пуск.")
+        print(f"[Artex AI Setup] Установка завершена: {exe_path}")
+        print("[Artex AI Setup] Ярлыки созданы на Рабочем столе и в меню Пуск.")
         if exe_path.exists() and "--no-launch" not in sys.argv:
             subprocess.Popen([str(exe_path)], cwd=str(exe_path.parent))
         return 0
     except Exception as exc:
-        print(f"[CampusPulse Setup] Ошибка установки: {exc}", file=sys.stderr)
+        print(f"[Artex AI Setup] Ошибка установки: {exc}", file=sys.stderr)
         return 1
 
 

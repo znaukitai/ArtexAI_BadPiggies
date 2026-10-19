@@ -129,7 +129,7 @@ def validate_and_parse_github_url(repo_url: str) -> Tuple[str, str]:
 def _github_headers() -> Dict[str, str]:
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "CampusPulse/1.0",
+        "User-Agent": "Artex AI/1.0",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     token = os.environ.get("GITHUB_TOKEN", "").strip()

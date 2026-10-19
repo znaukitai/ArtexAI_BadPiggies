@@ -20,7 +20,7 @@ def load_room_index() -> dict:
     rooms: dict[str, dict] = {}
     facilities: dict[tuple[str, int, str], dict] = {}
     for (current_block, floor), filename in FILES.items():
-        request = urllib.request.Request(f"{BASE}/{filename}", headers={"User-Agent": "CampusPulse-Map-Importer/1.0"})
+        request = urllib.request.Request(f"{BASE}/{filename}", headers={"User-Agent": "Artex AI-Map-Importer/1.0"})
         with urllib.request.urlopen(request, timeout=30) as response:
             source = response.read().decode("utf-8")
         groups = re.findall(r'data-name="([^"]*)"', source)

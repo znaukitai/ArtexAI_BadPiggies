@@ -1,4 +1,6 @@
-# CampusPulse
+<img src="assets/artex-ai-mark.png" width="48" alt="Artex AI">
+
+# Artex AI
 
 Помощник студента Astana IT University (AITU). В одном окне объединяет контроль дедлайнов, проверку репозиториев GitHub, составление учебного расписания на неделю и поиск кабинетов по карте кампуса.
 
@@ -17,21 +19,21 @@
 Для пользователей Windows доступна установка без ручной настройки Python и терминала:
 
 1. Перейдите в раздел **[Releases](https://github.com/znaukitai/CampusPulseAI_BadPiggies/releases/latest)** репозитория.
-2. Скачайте **`CampusPulse_Setup.exe`** (автоматический установщик) или архив **`CampusPulse-win64.zip`**.
-3. Запустите **`CampusPulse_Setup.exe`**:
-   - инсталлятор распакует приложение в `%LOCALAPPDATA%\Programs\CampusPulse`,
-   - создаст ярлыки **CampusPulse** на Рабочем столе и в меню «Пуск»,
-   - запустит `CampusPulse.exe`.
-4. При запуске **`CampusPulse.exe`** локальный сервер поднимается автоматически на `http://localhost:8501` и открывается вкладка браузера по умолчанию. Консольное окно лаунчера работает в фоновом режиме — при его закрытии сервер корректно завершает работу.
+2. Скачайте **`ArtexAI_Setup.exe`** (автоматический установщик) или архив **`ArtexAI-win64.zip`**.
+3. Запустите **`ArtexAI_Setup.exe`**:
+   - инсталлятор распакует приложение в `%LOCALAPPDATA%\Programs\Artex AI`,
+   - создаст ярлыки **Artex AI** на Рабочем столе и в меню «Пуск»,
+   - запустит `ArtexAI.exe`.
+4. При запуске **`ArtexAI.exe`** локальный сервер поднимается автоматически на `http://localhost:8501` и открывается вкладка браузера по умолчанию. Консольное окно лаунчера работает в фоновом режиме — при его закрытии сервер корректно завершает работу.
 
-### Локальная сборка `CampusPulse.exe` и `CampusPulse_Setup.exe`
+### Локальная сборка `ArtexAI.exe` и `ArtexAI_Setup.exe`
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 .\.venv\Scripts\python.exe scripts/build_exe.py
 ```
 
-После сборки исполняемые файлы появятся в `dist/CampusPulse/CampusPulse.exe`, `dist/CampusPulse-win64.zip` и `dist/CampusPulse_Setup.exe`.
+После сборки исполняемые файлы появятся в `dist/Artex AI/ArtexAI.exe`, `dist/ArtexAI-win64.zip` и `dist/ArtexAI_Setup.exe`.
 
 ## Быстрый старт из исходного кода (Windows)
 
@@ -55,7 +57,7 @@ Copy-Item .env.example .env
 ```dotenv
 GEMINI_API_KEY=ваш_ключ
 GEMINI_MODEL=gemini-3.8-flash
-CAMPUSPULSE_LOCAL_MODE=auto
+ARTEX_LOCAL_MODE=auto
 GITHUB_REPOSITORY=znaukitai/CampusPulseAI_BadPiggies
 ```
 

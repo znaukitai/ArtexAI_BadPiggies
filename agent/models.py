@@ -34,7 +34,7 @@ class DeadlineItem(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    """Response payload from CampusPulseAgent.query()."""
+    """Response payload from ArtexAgent.query()."""
 
     answer: str
     steps: List[Step]

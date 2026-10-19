@@ -1,6 +1,6 @@
-# CampusPulse — структура презентации (7 слайдов)
+# Artex AI — структура презентации (7 слайдов)
 
-## 1. CampusPulse — помощник студента AITU
+## 1. Artex AI — помощник студента AITU
 Дедлайны, проверка GitHub, учебное расписание и поиск аудиторий в едином чат-интерфейсе.
 
 ## 2. Проблема
@@ -16,7 +16,7 @@
 Проверка репозитория (`github_repo_status`, `github_assignment_check`) и быстрый поиск по 267 локациям корпусов C1.1–C1.3 (`find_campus_place`).
 
 ## 6. Архитектура
-Streamlit UI + Gateway + `CampusPulseAgent` (Google GenAI SDK) + `InMemoryMCPBridge` + поддержка деплоя в Vertex AI Agent Engine.
+Streamlit UI + Gateway + `ArtexAgent` (Google GenAI SDK) + `InMemoryMCPBridge` + поддержка деплоя в Vertex AI Agent Engine.
 
 ## 7. Итоги и развитие
 Готовый рабочий прототип с поддержкой светлой и тёмной темы, живыми проверками GitHub и интерактивной картой университета.

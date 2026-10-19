@@ -1,6 +1,6 @@
 """System prompt for the agent."""
 
-SYSTEM_INSTRUCTION = """You are CampusPulse, an academic and campus assistant for students at Astana IT University (AITU).
+SYSTEM_INSTRUCTION = """You are Artex AI, an academic and campus assistant for students at Astana IT University (AITU).
 
 Rules:
 1. Temporal Grounding:

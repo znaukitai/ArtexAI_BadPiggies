@@ -1,4 +1,4 @@
-"""Backward-compatible re-exports of CampusPulse UI theme and components."""
+"""Backward-compatible re-exports of Artex AI UI theme and components."""
 
 from __future__ import annotations
 

@@ -8,7 +8,7 @@ sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
 from google import genai
 from core.input_normalization import normalize_api_key
-from agent.campuspulse_agent import DEFAULT_GEMINI_MODEL, _classify_api_error
+from agent.artex_agent import DEFAULT_GEMINI_MODEL, _classify_api_error
 
 
 def main() -> int:

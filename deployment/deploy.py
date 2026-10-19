@@ -1,4 +1,4 @@
-"""Deploy CampusPulseAgent to Vertex AI Agent Engine."""
+"""Deploy ArtexAgent to Vertex AI Agent Engine."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from agent.campuspulse_agent import CampusPulseAgent
+from agent.artex_agent import ArtexAgent
 
 DEPLOY_RECORD_PATH = PROJECT_ROOT / ".deploy" / "resource_name.txt"
 
@@ -46,7 +46,7 @@ def _get_env_or_fail(name: str, default: str | None = None) -> str:
 
 
 def deploy_agent(skip_smoke_test: bool = False) -> str:
-    """Package and deploy CampusPulseAgent to Vertex AI Agent Engine."""
+    """Package and deploy ArtexAgent to Vertex AI Agent Engine."""
     import vertexai
 
     project_id = _get_env_or_fail("GOOGLE_CLOUD_PROJECT")
@@ -60,7 +60,7 @@ def deploy_agent(skip_smoke_test: bool = False) -> str:
     print(f"[DEPLOY] Initializing Vertex AI (project={project_id}, location={location}, bucket={staging_bucket})")
     vertexai.init(project=project_id, location=location, staging_bucket=staging_bucket)
 
-    local_agent = CampusPulseAgent(
+    local_agent = ArtexAgent(
         model=model_name,
         project=project_id,
         location=location,
@@ -68,8 +68,8 @@ def deploy_agent(skip_smoke_test: bool = False) -> str:
         max_steps=6,
     )
 
-    display_name = "campuspulse-agent"
-    description = "CampusPulse: student assistant for Astana IT University"
+    display_name = "artex-agent"
+    description = "Artex AI: student assistant for Astana IT University"
 
     remote_agent: Any = None
     if hasattr(vertexai, "agent_engines"):
@@ -114,7 +114,7 @@ def deploy_agent(skip_smoke_test: bool = False) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Deploy CampusPulseAgent to Vertex AI.")
+    parser = argparse.ArgumentParser(description="Deploy ArtexAgent to Vertex AI.")
     parser.add_argument(
         "--skip-smoke-test",
         action="store_true",

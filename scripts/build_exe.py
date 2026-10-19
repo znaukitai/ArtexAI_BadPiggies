@@ -1,4 +1,4 @@
-"""Build CampusPulse.exe and CampusPulse_Setup.exe using PyInstaller."""
+"""Build ArtexAI.exe and ArtexAI_Setup.exe using PyInstaller."""
 
 from __future__ import annotations
 
@@ -18,9 +18,11 @@ def build_launcher_exe() -> None:
         "PyInstaller",
         "--noconfirm",
         "--clean",
-        "--name=CampusPulse",
+        "--name=ArtexAI",
         "--onedir",
         "--console",
+        "--icon=assets/artex-ai.ico",
+        f"--add-data=assets{sep}assets",
         f"--add-data=frontend{sep}frontend",
         f"--add-data=agent{sep}agent",
         f"--add-data=core{sep}core",
@@ -45,9 +47,9 @@ def build_launcher_exe() -> None:
     ]
     subprocess.run(cmd, cwd=str(ROOT), check=True)
 
-    dist_dir = ROOT / "dist" / "CampusPulse"
+    dist_dir = ROOT / "dist" / "ArtexAI"
     if dist_dir.exists():
-        archive_base = ROOT / "dist" / "CampusPulse-win64"
+        archive_base = ROOT / "dist" / "ArtexAI-win64"
         shutil.make_archive(str(archive_base), "zip", root_dir=str(dist_dir))
 
 
@@ -63,7 +65,8 @@ def build_web_installer_exe() -> None:
         "--clean",
         "--onefile",
         "--console",
-        "--name=CampusPulse_Setup",
+        "--icon=assets/artex-ai.ico",
+        "--name=ArtexAI_Setup",
         str(installer_script),
     ]
     subprocess.run(cmd, cwd=str(ROOT), check=True)

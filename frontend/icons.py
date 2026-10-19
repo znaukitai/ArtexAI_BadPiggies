@@ -1,8 +1,10 @@
-"""Linear 24x24 SVG icons and neutral avatar data URIs for CampusPulse UI."""
+"""Linear 24x24 SVG icons and neutral avatar data URIs for Artex AI UI."""
 
 from __future__ import annotations
 
 import base64
+import re
+from pathlib import Path
 
 _SVG_PATHS: dict[str, str] = {
     # Signature pulse motif (single broken impulse polyline)
@@ -113,7 +115,11 @@ _DEFAULT_SIZES: dict[str, int] = {
 
 def icon(name: str, size: int = 18) -> str:
     """Return single-line inline SVG markup on a 24x24 grid with 1.5px rounded stroke."""
-    inner = _SVG_PATHS.get(name, _SVG_PATHS["logo"])
+    if name in {"logo", "brand_pulse", "loader"}:
+        svg = (Path(__file__).resolve().parents[1] / "assets" / "artex-ai-mark.svg").read_text(encoding="utf-8")
+        svg = re.sub(r"<metadata>.*?</metadata>", "", svg, flags=re.S)
+        return svg.replace('width="512"', f'width="{size}"').replace('height="512"', f'height="{size}"')
+    inner = _SVG_PATHS.get(name, _SVG_PATHS["chat"])
     attrs = (
         f'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
         f'width="{size}" height="{size}" fill="none" stroke="currentColor" '
@@ -155,11 +161,5 @@ def get_avatar_uri(role: str, theme: str = "dark") -> str:
             f"</g></svg>"
         )
     else:
-        svg = (
-            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">'
-            f'<circle cx="16" cy="16" r="15" fill="{bg}" stroke="{border}" stroke-width="1"/>'
-            f'<g transform="translate(4,4)" fill="none" stroke="{fg_assistant}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
-            f'<path d="M3 12h4.2l2.6-6.5 4.4 13 2.6-6.5H21"/>'
-            f"</g></svg>"
-        )
+        svg = icon("logo", size=32)
     return _svg_data_uri(svg)
