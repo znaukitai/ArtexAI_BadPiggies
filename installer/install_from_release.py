@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-GITHUB_REPO = os.environ.get("ARTEX_RELEASE_REPO", "znaukitai/CampusPulseAI_BadPiggies")
+GITHUB_REPO = os.environ.get("ARTEX_RELEASE_REPO", "znaukitai/Artex-AI")
 RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 

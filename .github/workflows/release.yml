@@ -51,7 +51,7 @@ jobs:
           path: |
             dist/ArtexAI-win64.zip
             dist/ArtexAI_Setup.exe
-            dist/Artex AI/ArtexAI.exe
+            dist/ArtexAI/ArtexAI.exe
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')

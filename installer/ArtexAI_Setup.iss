@@ -2,7 +2,7 @@
 #define MyAppName "Artex AI"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Artex AI AITU Team"
-#define MyAppURL "https://github.com/znaukitai/CampusPulseAI_BadPiggies"
+#define MyAppURL "https://github.com/znaukitai/Artex-AI"
 #define MyAppExeName "ArtexAI.exe"
 
 [Setup]

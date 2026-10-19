@@ -4,7 +4,7 @@
 
 Помощник студента Astana IT University (AITU). В одном окне объединяет контроль дедлайнов, проверку репозиториев GitHub, составление учебного расписания на неделю и поиск кабинетов по карте кампуса.
 
-Репозиторий проекта: [znaukitai/CampusPulseAI_BadPiggies](https://github.com/znaukitai/CampusPulseAI_BadPiggies)
+Репозиторий проекта: [znaukitai/Artex-AI](https://github.com/znaukitai/Artex-AI)
 
 ## Возможности
 
@@ -18,7 +18,7 @@
 
 Для пользователей Windows доступна установка без ручной настройки Python и терминала:
 
-1. Перейдите в раздел **[Releases](https://github.com/znaukitai/CampusPulseAI_BadPiggies/releases/latest)** репозитория.
+1. Перейдите в раздел **[Releases](https://github.com/znaukitai/Artex-AI/releases/latest)** репозитория.
 2. Скачайте **`ArtexAI_Setup.exe`** (автоматический установщик) или архив **`ArtexAI-win64.zip`**.
 3. Запустите **`ArtexAI_Setup.exe`**:
    - инсталлятор распакует приложение в `%LOCALAPPDATA%\Programs\Artex AI`,
@@ -33,7 +33,7 @@
 .\.venv\Scripts\python.exe scripts/build_exe.py
 ```
 
-После сборки исполняемые файлы появятся в `dist/Artex AI/ArtexAI.exe`, `dist/ArtexAI-win64.zip` и `dist/ArtexAI_Setup.exe`.
+После сборки исполняемые файлы появятся в `dist/ArtexAI/ArtexAI.exe`, `dist/ArtexAI-win64.zip` и `dist/ArtexAI_Setup.exe`.
 
 ## Быстрый старт из исходного кода (Windows)
 
@@ -58,7 +58,7 @@ Copy-Item .env.example .env
 GEMINI_API_KEY=ваш_ключ
 GEMINI_MODEL=gemini-3.8-flash
 ARTEX_LOCAL_MODE=auto
-GITHUB_REPOSITORY=znaukitai/CampusPulseAI_BadPiggies
+GITHUB_REPOSITORY=znaukitai/Artex-AI
 ```
 
 Ключ `GEMINI_API_KEY` и репозиторий также можно указать прямо в боковой панели интерфейса («Подключение и GitHub») — ключ хранится исключительно в памяти текущей сессии.
