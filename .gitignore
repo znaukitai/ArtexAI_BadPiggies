@@ -58,3 +58,7 @@ eggs/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local verification workspaces
+.artex-venv/
+.artex-work/

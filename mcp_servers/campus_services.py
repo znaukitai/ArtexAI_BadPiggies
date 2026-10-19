@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import difflib
+from core.input_normalization import normalize_room_query
 import os
 import re
 import time
@@ -331,7 +333,7 @@ def find_campus_place(query: str) -> Dict[str, Any]:
     """Find a room or facility in AITU blocks C1.1-C1.3."""
     start_ns = time.perf_counter_ns()
     locations = _load_campus_locations()
-    q = (query or "").strip().lower()
+    q = normalize_room_query(query or "").strip().lower()
     if not q:
         matches = locations[:30]
     else:
@@ -347,11 +349,14 @@ def find_campus_place(query: str) -> Dict[str, Any]:
                 if key in t:
                     expanded_terms.extend(syns)
 
-        room_query = re.search(r"c1\.[1-3]\.\d{3}[klp]?", q, flags=re.IGNORECASE)
+        room_query = re.search(r"c1\.(?:[1-3]\.)?\d{3}[klp]?", q, flags=re.IGNORECASE)
         if room_query:
             target = room_query.group(0).upper()
             base_target = re.sub(r"[KLP]$", "", target)
-            if target != base_target:
+            if target.count(".") == 1:
+                number = target.split(".")[1]
+                matches = [loc for loc in locations if re.fullmatch(r"C1\.[1-3]\." + re.escape(number) + r"[KLP]?", loc.get("code", "").upper())]
+            elif target != base_target:
                 matches = [loc for loc in locations if loc.get("code", "").upper() == target]
             else:
                 matches = [
@@ -381,6 +386,7 @@ def find_campus_place(query: str) -> Dict[str, Any]:
         data={
             "query": query,
             "matches_count": len(matches),
+            "suggestions": difflib.get_close_matches(q.upper().split()[-1] if q else "", [loc.get("code", "") for loc in locations], n=5) if not matches else [],
             "locations": matches[:30],
             "truncated": len(matches) > 30,
             "map_url": "https://yuujiso.github.io/aitumap/",

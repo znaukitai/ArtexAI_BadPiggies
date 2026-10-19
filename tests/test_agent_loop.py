@@ -136,7 +136,11 @@ def test_unrecognized_or_offtopic_returns_help_without_tools(bad_input: str) -> 
     assert is_unrecognized_or_offtopic(bad_input) is True
     gw = Gateway("local", api_key="")
     res = gw.query(bad_input, {"deadlines": []})
-    assert "Не понял запрос" in res.answer
+    if bad_input == "привет":
+        assert "Привет" in res.answer and "Не понял запрос" not in res.answer
+        assert "дедлайнами" in res.answer
+    else:
+        assert "Не понял запрос" in res.answer
     assert res.meta.get("tool_calls", 0) == 0
     assert len(res.steps) == 0
 

@@ -107,7 +107,8 @@ try:
 except ModuleNotFoundError:
     AgentResponse = _AgentResponse  # type: ignore[misc,assignment]
 
-from agent.campuspulse_agent import is_unrecognized_or_offtopic
+from agent.campuspulse_agent import is_unrecognized_or_offtopic, _classify_api_error
+from core.input_normalization import normalize_room_query, normalize_api_key, is_greeting, GREETING
 from agent.mcp_bridge import InMemoryMCPBridge
 from agent.prompts import UNRECOGNIZED_QUERY_MESSAGE
 from mcp_servers.academic_schedule import get_default_deadlines
@@ -133,14 +134,13 @@ class LocalBackend:
 
     def __init__(self, mode: str | None = None, api_key: str | None = None) -> None:
         # Never mutate os.environ with user-entered key; keep in instance memory only
-        self._api_key = (api_key if api_key is not None else os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+        self._api_key = normalize_api_key(api_key) or normalize_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
         mode = mode or os.getenv("CAMPUSPULSE_LOCAL_MODE", "auto")
         if mode not in {"auto", "demo"}:
             mode = "auto"
 
         raw_model = (os.getenv("GEMINI_MODEL") or DEFAULT_MODEL).strip()
-        # Upgrade retired gemini-2.5-flash default to current GA model to prevent HTTP 404
-        self.model = DEFAULT_MODEL if raw_model == "gemini-2.5-flash" else raw_model
+        self.model = raw_model
         self._bridge = InMemoryMCPBridge()
         self.agent = None
         self.last_error: str | None = None
@@ -158,10 +158,10 @@ class LocalBackend:
                 raise GatewayError(self.last_error) from exc
 
         if self.agent:
-            self.status = f"Подключён Gemini ({self.model})"
+            self.status = "Gemini не подключён: проверка ещё не выполнена"
             self.mode_kind = "gemini"
         else:
-            self.status = "Встроенный оркестратор MCP (без ключа Gemini)"
+            self.status = "Встроенный режим (без LLM)" if mode == "demo" else "Gemini не подключён: ключ не указан"
             self.mode_kind = "orchestrator"
 
     @property
@@ -171,7 +171,7 @@ class LocalBackend:
     def query(self, user_input: str, state: dict[str, Any]) -> AgentResponse:
         if is_unrecognized_or_offtopic(user_input):
             return validate_response({
-                "answer": UNRECOGNIZED_QUERY_MESSAGE,
+                "answer": GREETING if is_greeting(user_input) else UNRECOGNIZED_QUERY_MESSAGE,
                 "steps": [],
                 "state": copy.deepcopy(state),
                 "meta": {
@@ -187,7 +187,14 @@ class LocalBackend:
 
         if self.agent:
             with _QUERY_LOCK:
-                result = self.agent.query(user_input=user_input, state=copy.deepcopy(state))
+                try:
+                    result = self.agent.query(user_input=user_input, state=copy.deepcopy(state))
+                except Exception as exc:
+                    self.status = "Gemini не подключён: " + _classify_api_error(exc, self.model)
+                    self.mode_kind = "error"
+                    raise GatewayError(self.status) from None
+                finally:
+                    self.agent.close()
             res = validate_response(result)
             if any(s.type == "error" for s in res.steps):
                 err_thought = next((s.thought for s in res.steps if s.type == "error" and s.thought), "Ошибка Gemini API")
@@ -197,12 +204,30 @@ class LocalBackend:
                 res.meta["backend"] = "error"
                 return res
             self.last_error = None
-            self.status = f"Подключён Gemini ({self.agent.model})"
+            self.status = f"Gemini подключён ({self.agent.model})"
             self.mode_kind = "gemini"
             res.meta["backend"] = "gemini"
             return res
 
         return self._run_mcp_orchestrator(user_input, copy.deepcopy(state))
+
+    def check_connection(self) -> bool:
+        if not self._api_key:
+            self.status = "Gemini не подключён: ключ не указан"
+            return False
+        from google import genai
+        try:
+            with genai.Client(api_key=self._api_key, http_options={"timeout": 10000}) as client:
+                client.models.generate_content(model=self.model, contents="Reply OK", config={"max_output_tokens": 8})
+            self.status = f"Gemini подключён ({self.model})"
+            self.mode_kind = "gemini"
+            self.last_error = None
+            return True
+        except Exception as exc:
+            self.last_error = _classify_api_error(exc, self.model)
+            self.status = "Gemini не подключён: " + self.last_error
+            self.mode_kind = "error"
+            return False
 
     def _run_mcp_orchestrator(self, user_input: str, state: dict[str, Any]) -> AgentResponse:
         started_ns = time.perf_counter_ns()
@@ -238,7 +263,7 @@ class LocalBackend:
                 )
                 return envelope
 
-            q = user_input.strip()
+            q = normalize_room_query(user_input.strip())
             q_lower = q.casefold()
             url_match = re.search(r"https?://[^\s)\"'>]+", q)
             repo_match = re.search(r"(?<![A-Za-z0-9_.-])([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?![A-Za-z0-9_.-])", q)
@@ -338,7 +363,7 @@ class LocalBackend:
 
             elif (
                 any(w in q_lower for w in ("коворкинг", "аудитор", "кампус", "библиотек", "комната", "помещен", "кабинет", "корпус", "столов", "медпункт", "деканат", "фаблаб", "fablab", "регистратор", "цон"))
-                or re.search(r"c1\.[1-3]\.\d{3}", q_lower)
+                or re.search(r"c1\.(?:[1-3]\.)?\d{3}", q_lower)
             ):
                 loc_env = call_mcp("find_campus_place", {"query": q})
                 data = loc_env.get("data") or {}
@@ -357,13 +382,15 @@ class LocalBackend:
                         else:
                             lines.append(f"- **{name}** — блок `{block}`, этаж `{floor}`{hours}{desc}")
                     answer = (
-                        f"### Навигация по кампусу AITU\n\n"
+                        f"### Навигация по кампусу AITU (DEMO · справочник)\n\n"
                         + "\n".join(lines)
                         + "\n\nИнтерактивная схема этажей: [Открыть карту AITU](https://yuujiso.github.io/aitumap/)"
                     )
                 else:
                     answer = (
-                        "По вашему запросу локация не найдена в справочнике C1.1–C1.3. "
+                        "Такой аудитории нет в справочнике C1.1–C1.3 (DEMO). "
+                        + "Похожие варианты: " + ", ".join(data.get("suggestions", [])) + ". "
+                        +
                         "Попробуйте указать код кабинета (например, `C1.2.223`) или откройте [карту кампуса](https://yuujiso.github.io/aitumap/)."
                     )
 
@@ -424,7 +451,7 @@ class LocalBackend:
 
             else:
                 return validate_response({
-                    "answer": UNRECOGNIZED_QUERY_MESSAGE,
+                    "answer": GREETING if is_greeting(user_input) else UNRECOGNIZED_QUERY_MESSAGE,
                     "steps": [],
                     "state": self._bridge.export_state_after_query(state),
                     "meta": {
@@ -496,7 +523,7 @@ class CloudBackend:
     def query(self, user_input: str, state: dict[str, Any]) -> AgentResponse:
         if is_unrecognized_or_offtopic(user_input):
             return validate_response({
-                "answer": UNRECOGNIZED_QUERY_MESSAGE,
+                "answer": GREETING if is_greeting(user_input) else UNRECOGNIZED_QUERY_MESSAGE,
                 "steps": [],
                 "state": copy.deepcopy(state),
                 "meta": {
@@ -575,7 +602,10 @@ class CloudBackend:
                 model_location=self.model_location,
             )
             with _QUERY_LOCK:
-                raw = cloud_agent.query(user_input=user_input, state=copy.deepcopy(state))
+                try:
+                    raw = cloud_agent.query(user_input=user_input, state=copy.deepcopy(state))
+                finally:
+                    cloud_agent.close()
             res = validate_response(raw)
             if any(s.type == "error" for s in res.steps):
                 self.mode_kind = "error"
@@ -606,7 +636,7 @@ class Gateway:
             user_input = ""
         if len(str(user_input)) > 10000:
             return validate_response({
-                "answer": UNRECOGNIZED_QUERY_MESSAGE,
+                "answer": GREETING if is_greeting(user_input) else UNRECOGNIZED_QUERY_MESSAGE,
                 "steps": [],
                 "state": copy.deepcopy(state),
                 "meta": {

@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from core.input_normalization import normalize_room_query, normalize_api_key, is_greeting, GREETING
 from agent.mcp_bridge import InMemoryMCPBridge
 from agent.models import AgentResponse, SourceType, Step
 from agent.prompts import SYSTEM_INSTRUCTION, UNRECOGNIZED_QUERY_MESSAGE
@@ -69,7 +70,7 @@ def is_unrecognized_or_offtopic(user_input: Optional[str]) -> bool:
     if not cleaned or len(cleaned) > 4000:
         return True
 
-    lower = cleaned.casefold()
+    lower = normalize_room_query(cleaned).casefold()
     if any(inj in lower for inj in _PROMPT_INJECTION_PHRASES):
         return True
 
@@ -81,7 +82,7 @@ def is_unrecognized_or_offtopic(user_input: Optional[str]) -> bool:
         return True
 
     has_iso_date = bool(re.search(r"\b20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])\b", lower))
-    has_room_code = bool(re.search(r"\bc1\.[1-3]\.\d{3}[klp]?\b", lower))
+    has_room_code = bool(re.search(r"\bc1\.(?:[1-3]\.)?\d{3}[klp]?\b", lower))
     has_url_or_repo = bool(re.search(r"https?://|[a-z0-9_.-]+/[a-z0-9_.-]+", lower))
     if has_iso_date or has_room_code or has_url_or_repo:
         return False
@@ -125,7 +126,7 @@ class CampusPulseAgent:
         self.location: Optional[str] = str(location) if location else None
         self.model_location: Optional[str] = str(model_location) if model_location else None
         self.max_steps: int = int(max_steps)
-        self._api_key_override: Optional[str] = str(api_key) if api_key else None
+        self._api_key_override: Optional[str] = normalize_api_key(api_key) or None
 
     def set_up(self) -> None:
         from google import genai
@@ -154,7 +155,7 @@ class CampusPulseAgent:
             )
             self._backend_mode = "cloud"
         elif api_key:
-            self._client = genai.Client(api_key=api_key)
+            self._client = genai.Client(api_key=normalize_api_key(api_key), http_options={"timeout": 15000})
             self._backend_mode = "local"
         else:
             self._client = genai.Client(
@@ -163,6 +164,12 @@ class CampusPulseAgent:
                 location=resolved_location,
             )
             self._backend_mode = "cloud"
+
+    def close(self) -> None:
+        client = getattr(self, "_client", None)
+        if client is not None:
+            client.close()
+            del self._client
 
     def _ensure_setup(self) -> None:
         if not hasattr(self, "_bridge") or not hasattr(self, "_client"):
@@ -187,11 +194,6 @@ class CampusPulseAgent:
             except Exception as exc:
                 last_exc = exc
                 err_text = str(exc).lower()
-                # Automatic upgrade if legacy gemini-2.5-flash returns 404 on new keys
-                if ("404" in err_text or "not_found" in err_text or "not found" in err_text) and current_model != DEFAULT_GEMINI_MODEL:
-                    current_model = DEFAULT_GEMINI_MODEL
-                    self.model = DEFAULT_GEMINI_MODEL
-                    continue
                 is_transient = any(
                     k in err_text
                     for k in ("429", "resource_exhausted", "rate limit", "503", "timeout", "connection")
@@ -224,7 +226,7 @@ class CampusPulseAgent:
 
         if is_unrecognized_or_offtopic(user_input):
             resp = AgentResponse(
-                answer=UNRECOGNIZED_QUERY_MESSAGE,
+                answer=GREETING if is_greeting(user_input) else UNRECOGNIZED_QUERY_MESSAGE,
                 steps=[],
                 state=self._bridge.export_state_after_query(state),
                 meta={
