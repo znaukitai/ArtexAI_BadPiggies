@@ -1,6 +1,6 @@
 ; Inno Setup Script for Artex AI Windows Installer
 #define MyAppName "Artex AI"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Artex AI AITU Team"
 #define MyAppURL "https://github.com/znaukitai/CampusPulseAI_BadPiggies"
 #define MyAppExeName "ArtexAI.exe"
@@ -17,7 +17,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=ArtexAI_Setup
+OutputBaseFilename=ArtexAI_Offline_Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

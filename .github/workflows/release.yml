@@ -35,7 +35,10 @@ jobs:
         run: python scripts/build_exe.py
 
       - name: Smoke test frozen ArtexAI.exe
-        run: dist\ArtexAI\ArtexAI.exe --self-test
+        run: |
+          dist\ArtexAI\ArtexAI.exe --self-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dist\ArtexAI_Setup.exe --version
 
       - name: Build Inno Setup installer (if ISCC available)
         shell: pwsh
@@ -51,6 +54,8 @@ jobs:
           path: |
             dist/ArtexAI-win64.zip
             dist/ArtexAI_Setup.exe
+            dist/SHA256SUMS.txt
+            dist/ArtexAI_Offline_Setup.exe
             dist/ArtexAI/ArtexAI.exe
 
       - name: Publish GitHub Release
@@ -60,4 +65,6 @@ jobs:
           files: |
             dist/ArtexAI-win64.zip
             dist/ArtexAI_Setup.exe
+            dist/SHA256SUMS.txt
+            dist/ArtexAI_Offline_Setup.exe
           generate_release_notes: true

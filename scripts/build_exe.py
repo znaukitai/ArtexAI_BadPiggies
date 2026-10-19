@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import hashlib
 import subprocess
 import sys
 from pathlib import Path
@@ -28,7 +29,7 @@ def build_launcher_exe() -> None:
         f"--add-data=core{sep}core",
         f"--add-data=mcp_servers{sep}mcp_servers",
         f"--add-data=data{sep}data",
-        f"--add-data=.streamlit{sep}.streamlit",
+        f"--add-data=.streamlit/config.toml{sep}.streamlit",
         "--collect-all=streamlit",
         "--collect-all=mcp",
         "--collect-all=fastmcp",
@@ -75,3 +76,10 @@ def build_web_installer_exe() -> None:
 if __name__ == "__main__":
     build_launcher_exe()
     build_web_installer_exe()
+    assets = [ROOT / "dist" / name for name in ("ArtexAI-win64.zip", "ArtexAI_Setup.exe")]
+    checksums = []
+    for asset in assets:
+        with asset.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        checksums.append(f"{digest}  {asset.name}")
+    (ROOT / "dist" / "SHA256SUMS.txt").write_text("\n".join(checksums) + "\n", encoding="utf-8")

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -14,6 +14,17 @@ from pathlib import Path
 
 GITHUB_REPO = os.environ.get("ARTEX_RELEASE_REPO", "znaukitai/CampusPulseAI_BadPiggies")
 RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+INSTALLER_VERSION = "1.1.0"
+
+
+def verify_archive(archive: Path, checksums: str) -> None:
+    """Reject incomplete or modified release downloads before installation."""
+    expected = next((line.split()[0] for line in checksums.splitlines()
+                     if len(line.split()) == 2 and line.split()[1] == "ArtexAI-win64.zip"), None)
+    with archive.open("rb") as stream:
+        actual = hashlib.file_digest(stream, "sha256").hexdigest()
+    if expected is None or actual != expected.lower():
+        raise RuntimeError("Контрольная сумма архива не совпадает. Повторите загрузку релиза.")
 
 
 def get_install_dir() -> Path:
@@ -62,21 +73,14 @@ def download_and_install(install_dir: Path) -> Path:
     print(f"[Artex AI Setup] Проверка последнего релиза в {GITHUB_REPO} ...")
     req = urllib.request.Request(
         RELEASES_API_URL,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "Artex AI-Installer/1.0"},
+        headers={"Accept": "application/vnd.github+json", "User-Agent": f"ArtexAI-Installer/{INSTALLER_VERSION}"},
     )
     with urllib.request.urlopen(req, timeout=20) as resp:
         release_data = json.loads(resp.read().decode("utf-8"))
 
     assets = release_data.get("assets", [])
     zip_asset = next((a for a in assets if a.get("name") == "ArtexAI-win64.zip"), None)
-    exe_asset = next(
-        (
-            a
-            for a in assets
-            if str(a.get("name", "")).lower() == "artexai.exe"
-        ),
-        None,
-    )
+    checksum_asset = next((a for a in assets if a.get("name") == "SHA256SUMS.txt"), None)
 
     install_dir.mkdir(parents=True, exist_ok=True)
 
@@ -86,13 +90,13 @@ def download_and_install(install_dir: Path) -> Path:
         with tempfile.TemporaryDirectory() as tmp:
             zip_path = Path(tmp) / "release.zip"
             urllib.request.urlretrieve(dl_url, str(zip_path))
+            if not checksum_asset:
+                raise RuntimeError("В релизе отсутствует SHA256SUMS.txt. Нужна сборка Artex AI 1.1.0 или новее.")
+            with urllib.request.urlopen(checksum_asset["browser_download_url"], timeout=20) as response:
+                verify_archive(zip_path, response.read().decode("utf-8"))
             print(f"[Artex AI Setup] Распаковка в {install_dir} ...")
             with zipfile.ZipFile(zip_path, "r") as zf:
                 zf.extractall(install_dir)
-    elif exe_asset:
-        dl_url = exe_asset["browser_download_url"]
-        print(f"[Artex AI Setup] Скачивание {exe_asset['name']} ...")
-        urllib.request.urlretrieve(dl_url, str(install_dir / "ArtexAI.exe"))
     else:
         raise RuntimeError("В последнем релизе GitHub не найден ArtexAI-win64.zip. Попросите владельца выпустить обновлённую сборку.")
 
@@ -109,6 +113,9 @@ def download_and_install(install_dir: Path) -> Path:
 
 
 def main() -> int:
+    if "--version" in sys.argv:
+        print(f"Artex AI Setup {INSTALLER_VERSION}")
+        return 0
     install_dir = get_install_dir()
     try:
         exe_path = download_and_install(install_dir)
