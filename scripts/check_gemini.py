@@ -2,6 +2,7 @@
 import os
 import sys
 from pathlib import Path
+import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -13,6 +14,16 @@ from agent.artex_agent import DEFAULT_GEMINI_MODEL, _classify_api_error
 
 def main() -> int:
     load_dotenv(ROOT / ".env")
+    if "--network-check" in sys.argv:
+        print("Проверка HTTPS до сервера Gemini без отправки API-ключа.")
+        try:
+            with httpx.Client(timeout=httpx.Timeout(15, connect=10)) as client:
+                response = client.get("https://generativelanguage.googleapis.com/v1beta/models")
+            print(f"HTTP {response.status_code}: HTTPS-соединение установлено. Отказ без ключа ожидаем.")
+            return 0
+        except httpx.RequestError as exc:
+            print(f"{type(exc).__name__}: {_classify_api_error(exc, DEFAULT_GEMINI_MODEL)}")
+            return 1
     key = normalize_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
     if not key:
         print("Ключ не указан. Укажите GEMINI_API_KEY в локальном .env.")
@@ -24,7 +35,7 @@ def main() -> int:
                 for entry in client.models.list():
                     print(entry.name)
             else:
-                client.models.generate_content(model=model, contents="Reply OK", config={"max_output_tokens": 8})
+                client.models.generate_content(model=model, contents="Reply OK", config={"max_output_tokens": 8, "automatic_function_calling": {"disable": True}})
                 print(f"Gemini подключён ({model}).")
         return 0
     except Exception as exc:

@@ -53,6 +53,9 @@ if "gemini_api_key" not in st.session_state:
     st.session_state.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 if "github_repo" not in st.session_state:
     st.session_state.github_repo = os.getenv("GITHUB_REPOSITORY", DEFAULT_REPO) or DEFAULT_REPO
+if st.session_state.github_repo.strip().removeprefix("https://github.com/").rstrip("/").removesuffix(".git") == "znaukitai/Artex-AI":
+    st.session_state.github_repo = DEFAULT_REPO
+    os.environ["GITHUB_REPOSITORY"] = DEFAULT_REPO
 if "gcp_project" not in st.session_state:
     st.session_state.gcp_project = os.getenv("GOOGLE_CLOUD_PROJECT", "")
 if "vertex_resource" not in st.session_state:

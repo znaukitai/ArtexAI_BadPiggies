@@ -6,6 +6,7 @@ import os
 import re
 import time
 import uuid
+import httpx
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -95,8 +96,18 @@ def is_unrecognized_or_offtopic(user_input: Optional[str]) -> bool:
 
 def _classify_api_error(exc: Exception, model: str) -> str:
     """Produce a safe, user-readable error summary without leaking secrets."""
+    # httpx.ConnectTimeout may have an empty message. Inspect its type and causes.
+    current = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, (httpx.TimeoutException, TimeoutError)):
+            return "Нет связи с сервером Google: время ожидания истекло. Проверьте сеть, VPN и прокси. Проверка API-ключа не завершена."
+        if isinstance(current, (httpx.NetworkError, httpx.ProxyError, ConnectionError)):
+            return "Нет связи с сервером Google. Проверьте сеть, VPN и прокси. Проверка API-ключа не завершена."
+        current = current.__cause__ or current.__context__
     raw = str(exc)
-    lower = raw.lower()
+    lower = (type(exc).__name__ + " " + raw).lower()
     if "404" in lower or "not_found" in lower or "not found" in lower:
         return f"Модель '{model}' не найдена (HTTP 404). Проверьте название модели в настройках."
     if "401" in lower or "403" in lower or "api_key_invalid" in lower or "invalid api key" in lower or "permission_denied" in lower:

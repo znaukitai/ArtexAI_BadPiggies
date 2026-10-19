@@ -3,6 +3,8 @@ import pytest
 from core.input_normalization import normalize_room_query, normalize_api_key
 from frontend.gateway import LocalBackend
 from mcp_servers.campus_services import find_campus_place
+from agent.artex_agent import _classify_api_error
+import httpx
 
 
 @pytest.mark.parametrize("query", ["C1.226", "где с1.226", "С1 226", "c1-226"])
@@ -55,3 +57,18 @@ def test_agent_closes_after_setup_failure():
 
 def test_normalization_leaves_prose_unchanged():
     assert normalize_room_query("Составь план") == "Составь план"
+
+
+@pytest.mark.parametrize("error", [httpx.ConnectTimeout(""), httpx.ReadTimeout(""), httpx.ConnectError(""), httpx.ProxyError("")])
+def test_empty_network_errors_are_not_reported_as_invalid_keys(error):
+    message = _classify_api_error(error, "test-model")
+    assert "Нет связи с сервером Google" in message
+    assert "Проверка API-ключа не завершена" in message
+
+
+def test_wrapped_timeout_does_not_leak_request_details():
+    error = RuntimeError("private-request-value")
+    error.__cause__ = httpx.ConnectTimeout("")
+    message = _classify_api_error(error, "test-model")
+    assert "время ожидания истекло" in message
+    assert "private-request-value" not in message

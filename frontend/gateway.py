@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 ROOT = Path(__file__).resolve().parents[1]
 ZONE = ZoneInfo("Asia/Almaty")
-DEFAULT_REPO = "znaukitai/Artex-AI"
+DEFAULT_REPO = "https://github.com/znaukitai/CampusPulseAI_BadPiggies.git"
 DEFAULT_MODEL = "gemini-3.8-flash"
 
 PRIORITY_RU = {

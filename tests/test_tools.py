@@ -120,8 +120,8 @@ def test_github_repo_status_mocked(mock_client_cls: Any) -> None:
     repo_response = MagicMock()
     repo_response.status_code = 200
     repo_response.json.return_value = {
-        "full_name": "znaukitai/Artex-AI",
-        "html_url": "https://github.com/znaukitai/Artex-AI",
+        "full_name": "znaukitai/CampusPulseAI_BadPiggies",
+        "html_url": "https://github.com/znaukitai/CampusPulseAI_BadPiggies",
         "description": "Student assistant",
         "default_branch": "main",
         "language": "Python",
@@ -145,10 +145,10 @@ def test_github_repo_status_mocked(mock_client_cls: Any) -> None:
 
     mock_client.get.side_effect = [repo_response, commits_response]
 
-    res = github_repo_status("https://github.com/znaukitai/Artex-AI")
+    res = github_repo_status("https://github.com/znaukitai/CampusPulseAI_BadPiggies")
     assert res["ok"] is True
     assert res["source"] == "live"
-    assert res["data"]["full_name"] == "znaukitai/Artex-AI"
+    assert res["data"]["full_name"] == "znaukitai/CampusPulseAI_BadPiggies"
     assert len(res["data"]["recent_commits"]) == 1
     assert res["data"]["recent_commits"][0]["sha"] == "a1b2c3d"
 
@@ -163,7 +163,7 @@ def test_github_assignment_check_mocked(mock_client_cls: Any) -> None:
     mock_client.get.side_effect = [found_resp, missing_resp]
 
     res = github_assignment_check(
-        "https://github.com/znaukitai/Artex-AI",
+        "https://github.com/znaukitai/CampusPulseAI_BadPiggies",
         ["README.md", "deployment/deploy.py"],
     )
     assert res["ok"] is True
@@ -184,9 +184,9 @@ def test_find_campus_place_aitu() -> None:
 
 
 def test_github_url_shorthand_and_query_blocking() -> None:
-    owner, repo = validate_and_parse_github_url("znaukitai/Artex-AI")
+    owner, repo = validate_and_parse_github_url("znaukitai/CampusPulseAI_BadPiggies")
     assert owner == "znaukitai"
-    assert repo == "Artex-AI"
+    assert repo == "CampusPulseAI_BadPiggies"
 
     with pytest.raises(ValueError, match="Query parameters"):
         validate_and_parse_github_url("https://github.com/owner/repo?tab=readme")

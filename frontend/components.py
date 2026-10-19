@@ -536,7 +536,7 @@ def open_action_dialog(workspace: dict[str, Any], initial_action: str = "Доб�
     elif chosen == "Проверить репозиторий":
         repo_val = st.text_input(
             "GitHub-репозиторий (owner/repo или URL)",
-            value=st.session_state.get("github_repo", "znaukitai/Artex-AI"),
+            value=st.session_state.get("github_repo", "https://github.com/znaukitai/CampusPulseAI_BadPiggies.git"),
         )
         files_val = st.text_input(
             "Ожидаемые файлы (через запятую, необязательно)",

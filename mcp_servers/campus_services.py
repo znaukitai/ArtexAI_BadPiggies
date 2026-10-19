@@ -18,7 +18,7 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP("campus_services")
 
 _SAFE_SEGMENT_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
-DEFAULT_GITHUB_REPO = "znaukitai/Artex-AI"
+DEFAULT_GITHUB_REPO = "https://github.com/znaukitai/CampusPulseAI_BadPiggies.git"
 
 _FACILITY_SYNONYMS: Dict[str, List[str]] = {
     "коворкинг": ["atameken", "coworking", "c1.2", "open space"],

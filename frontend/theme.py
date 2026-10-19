@@ -724,6 +724,7 @@ footer {{
     box-shadow: none !important;
 }}
 [data-testid="stExpander"] summary {{
+    background: var(--cp-surface) !important;
     color: var(--cp-text) !important;
     font-weight: 500 !important;
     padding: 10px 14px !important;
@@ -732,7 +733,31 @@ footer {{
     color: var(--cp-text) !important;
 }}
 [data-testid="stExpander"] summary:hover {{
+    background: var(--cp-surface-2) !important;
     color: var(--cp-accent) !important;
+}}
+[data-testid="stExpander"] details,
+[data-testid="stExpanderDetails"] {{
+    background: var(--cp-surface) !important;
+    color: var(--cp-text) !important;
+}}
+/* React Aria checkbox indicator, distinct from the hidden native input. */
+[data-testid="stCheckbox"] label {{ color: var(--cp-text) !important; }}
+[data-testid="stCheckbox"] label > div:not([data-testid]) {{
+    background: var(--cp-surface) !important;
+    border-color: var(--cp-border-strong) !important;
+}}
+[data-testid="stCheckbox"] label[data-selected] > div:not([data-testid]) {{
+    background: var(--cp-button) !important;
+    border-color: var(--cp-button) !important;
+}}
+[data-testid="stCheckbox"] label[data-selected] > div:not([data-testid]) svg {{
+    stroke: var(--cp-white) !important;
+}}
+[data-testid="stCheckbox"] label[data-focus-visible] {{
+    background: var(--cp-surface-2) !important;
+    outline: 2px solid var(--cp-brand);
+    outline-offset: 2px;
 }}
 iframe {{
     background: var(--cp-surface) !important;

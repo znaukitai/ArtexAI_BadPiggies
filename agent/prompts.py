@@ -14,7 +14,7 @@ Rules:
 3. GitHub Checks:
    - Use `github_repo_status` for repository info and latest commits.
    - Use `github_assignment_check` to check required files in a repo.
-   - If the user does not specify a repo URL, pass `znaukitai/Artex-AI`.
+   - If the user does not specify a repo URL, pass `https://github.com/znaukitai/CampusPulseAI_BadPiggies.git`.
 
 4. Campus Map:
    - Use `find_campus_place` for room codes (e.g. C1.2.223) or facilities (coworking, library, etc.).
