@@ -48,7 +48,7 @@ PROMPTS = [
 ]
 
 if "theme" not in st.session_state:
-    st.session_state.theme = "dark"
+    st.session_state.theme = "light" if st.query_params.get("theme") == "light" else "dark"
 if "gemini_api_key" not in st.session_state:
     st.session_state.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 if "github_repo" not in st.session_state:
@@ -193,14 +193,15 @@ with st.sidebar:
         f"</div>"
     )
 
-    col_dl_hdr, col_dl_plus = st.columns([4, 1], vertical_alignment="center")
-    with col_dl_hdr:
-        _render_sidebar_html(
-            '<div style="font-size:16px;font-weight:600;color:var(--cp-text);letter-spacing:-0.01em;margin:4px 0;">Дедлайны</div>'
-        )
-    with col_dl_plus:
-        if st.button("", icon=":material/add:", key="plus_action_btn", help="Добавить дедлайн или действие"):
-            open_action_dialog(workspace)
+    with st.container(key="deadline_header"):
+        col_dl_hdr, col_dl_plus = st.columns([4, 1], vertical_alignment="center")
+        with col_dl_hdr:
+            _render_sidebar_html(
+                '<div style="font-size:16px;font-weight:600;color:var(--cp-text);letter-spacing:-0.01em;margin:4px 0;">Дедлайны</div>'
+            )
+        with col_dl_plus:
+            if st.button("", icon=":material/add:", key="plus_action_btn", help="Добавить дедлайн или действие"):
+                open_action_dialog(workspace)
 
     render_deadlines(workspace["state"], workspace=workspace)
 
@@ -210,6 +211,7 @@ with st.sidebar:
         theme_icon = ":material/light_mode:" if st.session_state.theme == "dark" else ":material/dark_mode:"
         if st.button("", icon=theme_icon, key="theme_btn", help="Переключить тему (Тёмная / Светлая)"):
             st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
+            st.query_params["theme"] = st.session_state.theme
             st.rerun()
     with col_theme_lbl:
         theme_name = "Тёмная тема" if st.session_state.theme == "dark" else "Светлая тема"

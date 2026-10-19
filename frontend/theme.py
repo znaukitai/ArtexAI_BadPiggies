@@ -7,42 +7,48 @@ import streamlit as st
 PALETTES: dict[str, dict[str, str]] = {
     "dark": {
         "color_scheme": "dark",
-        "bg": "#0B0F17",
+        "brand": "#3B82F6", "button": "#2563EB", "white": "#FFFFFF", "hover": "#60A5FA",
+        "warn_fg": "#F59E0B", "warn_bg": "#312B23", "warn": "#F59E0B",
+        "danger": "#EF4444", "success": "#10B981",
+        "bg": "#0B0F19",
         "surface": "#111827",
-        "surface2": "#1A2232",
-        "border": "rgba(255,255,255,.08)",
-        "border_strong": "rgba(255,255,255,.15)",
-        "text": "#E6EAF2",
-        "muted": "#9AA4B5",
-        "accent": "#35C3CF",
-        "accent_soft": "rgba(53,195,207,.12)",
-        "accent_ring": "rgba(53,195,207,.28)",
-        "live_fg": "#3DD68C",
-        "live_bg": "rgba(61,214,140,.12)",
-        "demo_fg": "#FDA14A",
-        "demo_bg": "rgba(253,161,74,.12)",
-        "err_fg": "#F97066",
-        "err_bg": "rgba(249,112,102,.12)",
+        "surface2": "#1A2233",
+        "border": "rgba(226,232,240,.10)",
+        "border_strong": "rgba(226,232,240,.18)",
+        "text": "#E2E8F0",
+        "muted": "#94A3B8",
+        "accent": "#3B82F6",
+        "accent_soft": "rgba(59,130,246,.12)",
+        "accent_ring": "rgba(59,130,246,.28)",
+        "live_fg": "#10B981",
+        "live_bg": "#112F34",
+        "demo_fg": "#94A3B8",
+        "demo_bg": "transparent",
+        "err_fg": "#FCA5A5",
+        "err_bg": "#301E2B",
         "float_shadow": "0 8px 28px rgba(0, 0, 0, 0.36)",
     },
     "light": {
         "color_scheme": "light",
-        "bg": "#FAFAFA",
+        "brand": "#3B82F6", "button": "#2563EB", "white": "#FFFFFF", "hover": "#2563EB",
+        "warn_fg": "#92400E", "warn_bg": "#FEF3C7", "warn": "#F59E0B",
+        "danger": "#EF4444", "success": "#10B981",
+        "bg": "#F8FAFC",
         "surface": "#FFFFFF",
-        "surface2": "#F4F4F5",
-        "border": "#E4E4E7",
-        "border_strong": "#D4D4D8",
-        "text": "#18181B",
-        "muted": "#52525B",
-        "accent": "#0B7C87",
-        "accent_soft": "rgba(11,124,135,.10)",
-        "accent_ring": "rgba(11,124,135,.22)",
-        "live_fg": "#15803D",
-        "live_bg": "rgba(21,128,61,.12)",
-        "demo_fg": "#B45309",
-        "demo_bg": "rgba(180,83,9,.12)",
-        "err_fg": "#C0261B",
-        "err_bg": "rgba(192,38,27,.10)",
+        "surface2": "#F1F5F9",
+        "border": "#E2E8F0",
+        "border_strong": "#CBD5E1",
+        "text": "#0B0F19",
+        "muted": "#475569",
+        "accent": "#2563EB",
+        "accent_soft": "rgba(37,99,235,.10)",
+        "accent_ring": "rgba(59,130,246,.28)",
+        "live_fg": "#047857",
+        "live_bg": "#D1FAE5",
+        "demo_fg": "#475569",
+        "demo_bg": "transparent",
+        "err_fg": "#B91C1C",
+        "err_bg": "#FEE2E2",
         "float_shadow": "0 6px 24px rgba(24, 24, 27, 0.07)",
     },
 }
@@ -54,6 +60,9 @@ def inject_theme(mode: str = "dark") -> None:
     css = f"""<style>
 :root, html, body, .stApp {{
     color-scheme: {p["color_scheme"]};
+    --cp-brand: {p["brand"]}; --cp-button: {p["button"]}; --cp-white: {p["white"]}; --cp-hover: {p["hover"]};
+    --cp-warn-fg: {p["warn_fg"]}; --cp-warn-bg: {p["warn_bg"]}; --cp-warn: {p["warn"]};
+    --cp-danger: {p["danger"]}; --cp-success: {p["success"]};
     --cp-bg: {p["bg"]};
     --cp-surface: {p["surface"]};
     --cp-surface-2: {p["surface2"]};
@@ -204,7 +213,7 @@ footer {{
     background-color: var(--cp-surface) !important;
     border-right: 1px solid var(--cp-border) !important;
     box-shadow: none !important;
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    transition: transform 220ms cubic-bezier(.4,0,.2,1), width 220ms cubic-bezier(.4,0,.2,1) !important;
 }}
 [data-testid="stSidebar"] > div:first-child {{
     background: var(--cp-surface) !important;
@@ -328,12 +337,12 @@ footer {{
     opacity: 0.85 !important;
 }}
 [data-testid="stChatInputSubmitButton"] {{
-    background: var(--cp-accent) !important;
-    color: #FFFFFF !important;
+    background: var(--cp-button) !important;
+    color: var(--cp-white) !important;
     border: none !important;
     border-radius: 12px !important;
-    width: 34px !important;
-    height: 34px !important;
+    width: 36px !important;
+    height: 36px !important;
     transition: opacity 160ms ease, transform 160ms ease !important;
 }}
 [data-testid="stChatInputSubmitButton"]:hover:not(:disabled) {{
@@ -379,7 +388,7 @@ footer {{
     font-size: 13.5px !important;
     font-weight: 500 !important;
     padding: 5px 10px !important;
-    min-height: 34px !important;
+    min-height: 36px !important;
     box-shadow: none !important;
     transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 150ms ease !important;
 }}
@@ -438,14 +447,14 @@ footer {{
 }}
 .st-key-plus_action_btn button,
 [data-testid="stSidebar"] .st-key-plus_action_btn button {{
-    width: 34px !important;
-    height: 34px !important;
-    min-height: 34px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
     padding: 0 !important;
     border-radius: 999px !important;
-    background: var(--cp-accent) !important;
-    background-color: var(--cp-accent) !important;
-    color: #FFFFFF !important;
+    background: var(--cp-button) !important;
+    background-color: var(--cp-button) !important;
+    color: var(--cp-white) !important;
     border: none !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -455,13 +464,13 @@ footer {{
 }}
 .st-key-plus_action_btn button [data-testid="stIconMaterial"],
 .st-key-plus_action_btn button span {{
-    color: #FFFFFF !important;
+    color: var(--cp-white) !important;
     font-size: 18px !important;
 }}
 .st-key-plus_action_btn button:hover,
 [data-testid="stSidebar"] .st-key-plus_action_btn button:hover {{
-    background: var(--cp-accent) !important;
-    background-color: var(--cp-accent) !important;
+    background: var(--cp-button) !important;
+    background-color: var(--cp-button) !important;
     opacity: 0.92 !important;
     transform: scale(1.05);
     box-shadow: 0 0 0 3px var(--cp-accent-ring) !important;
@@ -575,13 +584,13 @@ footer {{
     border-color: var(--cp-accent) !important;
 }}
 [data-testid="stRadioOption"][data-selected] > div > div:first-child {{
-    background: var(--cp-accent) !important;
-    background-color: var(--cp-accent) !important;
+    background: var(--cp-button) !important;
+    background-color: var(--cp-button) !important;
     border-color: var(--cp-accent) !important;
 }}
 [data-testid="stRadioOption"][data-selected] > div > div:first-child > div {{
-    background: #FFFFFF !important;
-    background-color: #FFFFFF !important;
+    background: var(--cp-white) !important;
+    background-color: var(--cp-white) !important;
 }}
 
 /* DateInput field & spinbutton segments (stDateInputField) */
@@ -603,9 +612,9 @@ footer {{
     color: var(--cp-text) !important;
 }}
 [data-testid="stDateInputField"] [role="spinbutton"][data-focused] {{
-    background: var(--cp-accent) !important;
-    background-color: var(--cp-accent) !important;
-    color: #FFFFFF !important;
+    background: var(--cp-button) !important;
+    background-color: var(--cp-button) !important;
+    color: var(--cp-white) !important;
     border-radius: 4px !important;
 }}
 
@@ -690,9 +699,9 @@ footer {{
     opacity: 0.45 !important;
 }}
 [data-testid="stDateInputCalendar"] .react-aria-CalendarCell[data-selected] {{
-    background: var(--cp-accent) !important;
-    background-color: var(--cp-accent) !important;
-    color: #FFFFFF !important;
+    background: var(--cp-button) !important;
+    background-color: var(--cp-button) !important;
+    color: var(--cp-white) !important;
     border-radius: 8px !important;
 }}
 [data-testid="stDateInputCalendar"] .react-aria-CalendarCell[data-today]:not([data-selected]) {{
@@ -1071,6 +1080,40 @@ iframe {{
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }}
+}}
+
+/* Stable controls and uniform motion, including portalled dialogs. */
+[data-testid="stSidebarCollapsedControl"], [data-testid="stExpandSidebarButton"],
+[data-testid="collapsedControl"] {{ visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 1001; }}
+[data-testid="stHeader"] {{ pointer-events: auto; }}
+.cp-brand-row {{ font-family: Manrope, var(--cp-font-sans); font-weight: 600; letter-spacing: -.02em; color: var(--cp-text); }}
+.cp-brand-icon, .hero-logo-badge {{ color: var(--cp-brand); background: transparent; box-shadow: none; border: none; }}
+.cp-brand-icon svg {{ width:32px; height:32px; }}
+.cp-status-row {{ align-items:flex-start; min-width:0; line-height:1.5; }}
+.st-key-deadline_header [data-testid="stHorizontalBlock"] {{ align-items:center !important; flex-wrap:nowrap !important; }}
+.st-key-deadline_header [data-testid="stColumn"] {{ min-width:0 !important; }}
+.st-key-deadline_header [data-testid="stElementContainer"] {{ margin:0 !important; height:36px !important; }}
+.st-key-deadline_header [data-testid="stMarkdownContainer"], .st-key-deadline_header [data-testid="stMarkdownContainer"] > div {{ height:36px !important; margin:0 !important; display:flex; align-items:center; }}
+.mode-demo {{ border:1px solid var(--cp-muted); background:transparent; color:var(--cp-muted); }}
+.dl-card.dl-critical, .dl-card.dl-high {{ border-left-color:var(--cp-danger); }}
+.dl-card.dl-medium {{ border-left-color:var(--cp-warn); }}
+.dl-card.dl-normal {{ border-left-color:var(--cp-success); }}
+.dl-chip.chip-high {{ background:var(--cp-err-bg); color:var(--cp-err-fg); }}
+.dl-chip.chip-medium {{ background:var(--cp-warn-bg); color:var(--cp-warn-fg); }}
+.dl-chip.chip-normal {{ background:var(--cp-live-bg); color:var(--cp-live-fg); }}
+[data-testid="stChatInput"] {{ border-radius:20px !important; }}
+[data-testid="stChatInput"]:focus-within {{ border-color:var(--cp-brand) !important; box-shadow:0 0 0 2px var(--cp-accent-ring) !important; }}
+[data-testid="stBottom"]::before {{ background:var(--cp-bg); }}
+button, summary, [role="button"], [role="radio"], [data-testid="stRadio"] label {{
+    transition:transform 120ms cubic-bezier(.2,.8,.2,1), background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms !important;
+}}
+button:hover, summary:hover, [role="button"]:hover, [role="radio"]:hover {{ transform:translateY(-1px) !important; border-color:var(--cp-hover) !important; }}
+button:active, summary:active, [role="button"]:active, [role="radio"]:active {{ transform:scale(.96) !important; transition-duration:90ms !important; }}
+button:focus-visible, summary:focus-visible, [role="button"]:focus-visible, [role="radio"]:focus-visible {{ outline:2px solid var(--cp-brand) !important; outline-offset:2px !important; }}
+[data-testid="stSidebar"] {{ transition:transform 220ms cubic-bezier(.4,0,.2,1), margin-left 220ms cubic-bezier(.4,0,.2,1), width 220ms cubic-bezier(.4,0,.2,1) !important; }}
+@media (prefers-reduced-motion: reduce) {{
+    button, summary, [role="button"], [role="radio"], .dl-card {{ transform:none !important; }}
+    [data-testid="stSidebar"] {{ transition:none !important; }}
 }}
 </style>"""
     st.markdown(css, unsafe_allow_html=True)

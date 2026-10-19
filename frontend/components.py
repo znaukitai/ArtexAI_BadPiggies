@@ -32,7 +32,7 @@ def _render_html(markup: str) -> None:
 
 
 def format_badge_html(source: str | None) -> str:
-    """Render semantic LIVE or DEMO pill badge HTML (green only for LIVE, orange only for DEMO)."""
+    """Render semantic LIVE or DEMO pill badge HTML (green for LIVE, neutral outline for DEMO)."""
     src = (source or "").strip().lower()
     if src == "live":
         return '<span class="mode-pill mode-live"><span class="mode-dot"></span>LIVE</span>'
@@ -103,6 +103,8 @@ def _urgency_visuals(urg_code: str, priority: str) -> tuple[str, str, str]:
         return ("dl-critical", "chip-critical", "warning")
     if urg_code == "urgent" or prio == "high":
         return ("dl-high", "chip-high", "clock")
+    if prio == "medium":
+        return ("dl-medium", "chip-medium", "clock")
     return ("dl-normal", "chip-normal", "calendar")
 
 

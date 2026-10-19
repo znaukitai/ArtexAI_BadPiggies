@@ -145,11 +145,9 @@ def _svg_data_uri(svg_markup: str) -> str:
 
 def get_avatar_uri(role: str, theme: str = "dark") -> str:
     """Return neutral circular SVG data URI for user or assistant chat avatar."""
-    is_dark = theme == "dark"
-    bg = "#111827" if is_dark else "#FFFFFF"
-    border = "rgba(255,255,255,0.10)" if is_dark else "#E4E4E7"
-    fg_user = "#9AA4B5" if is_dark else "#52525B"
-    fg_assistant = "#35C3CF" if is_dark else "#0B7C87"
+    from frontend.theme import PALETTES
+    palette = PALETTES["dark" if theme == "dark" else "light"]
+    bg, border, fg_user = palette["surface"], palette["border"], palette["muted"]
 
     if role == "user":
         svg = (
