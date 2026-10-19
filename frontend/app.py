@@ -165,9 +165,8 @@ with st.sidebar:
     if mode == "local":
         if st.button("Проверить подключение", key="check_connection"):
             backend.check_connection()
-        st.checkbox("Встроенный режим (без LLM)", value=False, key="builtin_mode")
         st.caption("Ключ: [Google AI Studio](https://aistudio.google.com/apikey). Можно указать GEMINI_API_KEY в .env.")
-    status_str = "Встроенный режим (без LLM)" if mode == "local" and st.session_state.get("builtin_mode") else str(backend.status)
+    status_str = str(backend.status)
     safe_status = html.escape(status_str)
     _render_sidebar_html(
         f'<div class="cp-status-row">'
@@ -257,7 +256,7 @@ for idx, message in enumerate(workspace["messages"]):
                 selected_prompt = retry_prompt
 
 typed_prompt = st.chat_input(
-    "Спросите о дедлайнах, GitHub или аудитории в кампусе...",
+    "Задайте вопрос — об учёбе, кампусе или другой теме...",
     max_chars=10000,
     key="chat_input_box",
 )
@@ -271,13 +270,7 @@ if prompt := selected_prompt or typed_prompt:
         with loading_slot.container():
             render_loading_state()
         try:
-            if mode == "local" and st.session_state.get("builtin_mode"):
-                from frontend.gateway import LocalBackend
-                response = LocalBackend(mode="demo").query(prompt, workspace["state"]).model_dump(mode="json")
-            elif mode == "local" and not workspace["gateway"].backend.agent:
-                raise GatewayError("Gemini не подключён: ключ не указан. Введите ключ или выберите встроенный режим.")
-            else:
-                response = workspace["gateway"].query(prompt, workspace["state"]).model_dump(mode="json")
+            response = workspace["gateway"].query(prompt, workspace["state"]).model_dump(mode="json")
             loading_slot.empty()
             workspace["state"] = response["state"]
             workspace["messages"].append({"role": "assistant", "response": response})

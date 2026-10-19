@@ -30,7 +30,7 @@ def main() -> int:
         return 2
     model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
     try:
-        with genai.Client(api_key=key, http_options={"timeout": 10000}) as client:
+        with genai.Client(vertexai=False, api_key=key, http_options={"timeout": 10000}) as client:
             if "--list-models" in sys.argv:
                 for entry in client.models.list():
                     print(entry.name)

@@ -3,95 +3,27 @@
 from __future__ import annotations
 
 import os
-import re
+import logging
+import random
 import time
 import uuid
 import httpx
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from core.input_normalization import normalize_room_query, normalize_api_key, is_greeting, GREETING
+from google.genai import types
+
+from core.input_normalization import normalize_api_key
 from agent.mcp_bridge import InMemoryMCPBridge
 from agent.models import AgentResponse, SourceType, Step
-from agent.prompts import SYSTEM_INSTRUCTION, UNRECOGNIZED_QUERY_MESSAGE
+from agent.prompts import SYSTEM_INSTRUCTION
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
-_OFFTOPIC_EXACT = {
-    "?", "??", "???", "!", ".", "...", "привет", "здравствуйте", "салем",
-    "hi", "hello", "hey", "ok", "окей", "тест", "test", "анекдот",
-}
-
-_OFFTOPIC_PHRASES = (
-    "расскажи анекдот",
-    "расскажи шутку",
-    "what is the weather",
-    "какая погода",
-    "погода в",
-    "кто ты",
-    "как дела",
-)
-
-_PROMPT_INJECTION_PHRASES = (
-    "ignore previous instructions",
-    "ignore all previous instructions",
-    "disregard previous instructions",
-    "reveal the api key",
-    "reveal api key",
-    "show the api key",
-    "print os.environ",
-    "забудь инструкции",
-    "забудь предыдущие инструкции",
-    "покажи api ключ",
-    "раскрой ключ",
-)
-
-_DOMAIN_KEYWORDS = (
-    "дедлайн", "deadline", "горит", "срок", "сдач", "задач", "лаб", " рубеж",
-    "midterm", "final", "экзамен", "квиз", "quiz", "силлабус", "syllabus", "извлек",
-    "план", "недел", "расписан", "schedule", "plan", "курс", "course",
-    "репозитор", "github", "гитхаб", "коммит", "commit", "repo", "готовность",
-    "коворкинг", "coworking", "аудитор", "кампус", "campus", "библиотек", "library",
-    "комната", "помещен", "кабинет", "корпус", "столов", "canteen", "медпункт",
-    "деканат", "фаблаб", "fablab", "регистратор", "registrar", "цон", "ssc",
-    "астана", "aitu", "сегодня", "завтра", "число", "дата", "get_today",
-    "list_deadlines", "add_deadline", "plan_week", "parse_syllabus", "добав",
-)
-
-
 def _utc_iso_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
-
-
-def is_unrecognized_or_offtopic(user_input: Optional[str]) -> bool:
-    """Return True if the input is empty, gibberish, prompt injection, or unrelated to AITU tasks."""
-    if user_input is None:
-        return True
-    cleaned = str(user_input).strip()
-    if not cleaned or len(cleaned) > 4000:
-        return True
-
-    lower = normalize_room_query(cleaned).casefold()
-    if any(inj in lower for inj in _PROMPT_INJECTION_PHRASES):
-        return True
-
-    stripped_punct = re.sub(r"[^\w\s]", "", lower).strip()
-    if not stripped_punct or lower in _OFFTOPIC_EXACT or stripped_punct in _OFFTOPIC_EXACT:
-        return True
-
-    if any(p in lower for p in _OFFTOPIC_PHRASES):
-        return True
-
-    has_iso_date = bool(re.search(r"\b20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])\b", lower))
-    has_room_code = bool(re.search(r"\bc1\.(?:[1-3]\.)?\d{3}[klp]?\b", lower))
-    has_url_or_repo = bool(re.search(r"https?://|[a-z0-9_.-]+/[a-z0-9_.-]+", lower))
-    if has_iso_date or has_room_code or has_url_or_repo:
-        return False
-
-    if any(kw in lower for kw in _DOMAIN_KEYWORDS):
-        return False
-
-    return True
 
 
 def _classify_api_error(exc: Exception, model: str) -> str:
@@ -136,7 +68,9 @@ class ArtexAgent:
         self.project: Optional[str] = str(project) if project else None
         self.location: Optional[str] = str(location) if location else None
         self.model_location: Optional[str] = str(model_location) if model_location else None
-        self.max_steps: int = int(max_steps)
+        if isinstance(max_steps, bool) or not isinstance(max_steps, int) or max_steps < 1:
+            raise ValueError("max_steps must be a positive integer")
+        self.max_steps: int = max_steps
         self._api_key_override: Optional[str] = normalize_api_key(api_key) or None
 
     def set_up(self) -> None:
@@ -158,29 +92,31 @@ class ArtexAgent:
             or os.environ.get("GOOGLE_API_KEY")
         )
 
-        if resolved_project and not api_key:
+        options = types.HttpOptions(timeout=60_000)
+        # An explicitly selected cloud project must not be overridden by a local key.
+        if self.project or (resolved_project and not api_key):
             self._client = genai.Client(
-                vertexai=True,
-                project=resolved_project,
-                location=resolved_location,
+                vertexai=True, project=resolved_project,
+                location=resolved_location, http_options=options,
             )
             self._backend_mode = "cloud"
         elif api_key:
-            self._client = genai.Client(api_key=normalize_api_key(api_key), http_options={"timeout": 15000})
+            self._client = genai.Client(
+                vertexai=False, api_key=normalize_api_key(api_key), http_options=options,
+            )
             self._backend_mode = "local"
         else:
-            self._client = genai.Client(
-                vertexai=True,
-                project=resolved_project,
-                location=resolved_location,
-            )
-            self._backend_mode = "cloud"
+            raise ValueError("Configure GEMINI_API_KEY or GOOGLE_CLOUD_PROJECT.")
 
     def close(self) -> None:
         client = getattr(self, "_client", None)
         if client is not None:
-            client.close()
-            del self._client
+            try:
+                client.close()
+            except Exception as exc:
+                logger.warning("Gemini client cleanup failed (%s)", type(exc).__name__)
+            finally:
+                del self._client
 
     def _ensure_setup(self) -> None:
         if not hasattr(self, "_bridge") or not hasattr(self, "_client"):
@@ -188,10 +124,12 @@ class ArtexAgent:
 
     def _call_model_with_retry(
         self,
-        contents: List[Any],
-        config: Any,
+        contents: list[types.Content],
+        config: types.GenerateContentConfig,
         max_retries: int = 3,
-    ) -> Any:
+    ) -> types.GenerateContentResponse:
+        if max_retries < 1:
+            raise ValueError("max_retries must be positive")
         delay = 1.0
         last_exc: Optional[Exception] = None
         current_model = self.model
@@ -204,14 +142,19 @@ class ArtexAgent:
                 )
             except Exception as exc:
                 last_exc = exc
-                err_text = str(exc).lower()
-                is_transient = any(
-                    k in err_text
-                    for k in ("429", "resource_exhausted", "rate limit", "503", "timeout", "connection")
+                code = getattr(exc, "code", None)
+                is_transient = (
+                    code in {408, 429, 500, 502, 503, 504}
+                    or isinstance(exc, (httpx.TimeoutException, httpx.NetworkError,
+                                        httpx.ProxyError, TimeoutError, ConnectionError))
+                )
+                logger.warning(
+                    "Gemini request failed: model=%s attempt=%d/%d error=%s retryable=%s",
+                    self.model, attempt + 1, max_retries, type(exc).__name__, is_transient,
                 )
                 if not is_transient or attempt == max_retries - 1:
                     raise
-                time.sleep(delay)
+                time.sleep(delay + random.uniform(0, delay * 0.25))
                 delay *= 2.0
         if last_exc:
             raise last_exc
@@ -226,7 +169,8 @@ class ArtexAgent:
         from google.genai import types
 
         query_start_ns = time.perf_counter_ns()
-        self._ensure_setup()
+        if not hasattr(self, "_bridge"):
+            self._bridge = InMemoryMCPBridge()
 
         active_session_id = session_id or f"sess-{uuid.uuid4().hex[:8]}"
         self._bridge.sync_state_before_query(state)
@@ -235,41 +179,25 @@ class ArtexAgent:
         step_index = 0
         tool_calls_count = 0
 
-        if is_unrecognized_or_offtopic(user_input):
-            resp = AgentResponse(
-                answer=GREETING if is_greeting(user_input) else UNRECOGNIZED_QUERY_MESSAGE,
-                steps=[],
-                state=self._bridge.export_state_after_query(state),
-                meta={
-                    "model": self.model,
-                    "session_id": active_session_id,
-                    "total_ms": 0,
-                    "tool_calls": 0,
-                    "steps_count": 0,
-                    "backend": getattr(self, "_backend_mode", "local"),
-                },
-            )
-            return resp.model_dump()
-
-        contents: List[Any] = [
+        contents: list[types.Content] = [
             types.Content(
                 role="user",
                 parts=[types.Part.from_text(text=str(user_input))],
             )
         ]
 
-        config_values: Dict[str, Any] = {
-            "system_instruction": self._system_instruction,
-            "tools": self._bridge.get_callable_tools(),
-            "automatic_function_calling": types.AutomaticFunctionCallingConfig(disable=True),
-        }
-        if not self.model.startswith("gemini-3."):
-            config_values["temperature"] = 0.1
-        gen_config = types.GenerateContentConfig(**config_values)
-
         final_answer = ""
 
         try:
+            self._ensure_setup()
+            config_values: Dict[str, Any] = {
+                "system_instruction": self._system_instruction,
+                "tools": self._bridge.get_tools(),
+                "automatic_function_calling": types.AutomaticFunctionCallingConfig(disable=True),
+            }
+            if not self.model.startswith("gemini-3."):
+                config_values["temperature"] = 0.1
+            gen_config = types.GenerateContentConfig(**config_values)
             for _iteration in range(self.max_steps):
                 llm_start_ns = time.perf_counter_ns()
                 llm_started_at = _utc_iso_now()
@@ -280,15 +208,17 @@ class ArtexAgent:
                 candidate = response.candidates[0] if getattr(response, "candidates", None) else None
                 model_content = getattr(candidate, "content", None)
                 parts = getattr(model_content, "parts", None) or []
+                if not parts:
+                    raise RuntimeError("Gemini returned no usable content (blocked or empty response).")
 
                 if model_content is not None:
                     contents.append(model_content)
 
                 text_fragments: List[str] = []
-                function_calls: List[Any] = []
+                function_calls: list[types.FunctionCall] = []
 
                 for part in parts:
-                    if getattr(part, "text", None):
+                    if getattr(part, "text", None) and not getattr(part, "thought", False):
                         text_fragments.append(part.text)
                     if getattr(part, "function_call", None):
                         function_calls.append(part.function_call)
@@ -312,7 +242,7 @@ class ArtexAgent:
                         )
                         step_index += 1
 
-                    tool_response_parts: List[Any] = []
+                    tool_response_parts: list[types.Part] = []
 
                     for fc in function_calls:
                         tool_name = str(getattr(fc, "name", ""))
@@ -356,10 +286,11 @@ class ArtexAgent:
                         step_index += 1
 
                         tool_response_parts.append(
-                            types.Part.from_function_response(
+                            types.Part(function_response=types.FunctionResponse(
+                                id=getattr(fc, "id", None),
                                 name=tool_name,
                                 response={"result": envelope},
-                            )
+                            ))
                         )
 
                     contents.append(
@@ -370,7 +301,9 @@ class ArtexAgent:
                     )
                     continue
 
-                final_answer = combined_text or getattr(response, "text", "") or ""
+                final_answer = combined_text
+                if not final_answer:
+                    raise RuntimeError("Gemini returned no visible answer or function calls.")
                 steps.append(
                     Step(
                         index=step_index,
@@ -401,6 +334,7 @@ class ArtexAgent:
                 step_index += 1
 
         except Exception as exc:
+            logger.error("Gemini query failed: model=%s error=%s", self.model, type(exc).__name__)
             err_summary = _classify_api_error(exc, self.model)
             final_answer = err_summary
             steps.append(

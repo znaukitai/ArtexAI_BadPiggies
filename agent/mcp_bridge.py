@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Callable, Dict, List, Optional
+import inspect
+import logging
+from typing import Any, Callable, Dict, List, Optional, get_type_hints
+
+from pydantic import BaseModel, ConfigDict, ValidationError, create_model
+from google.genai import types
 
 from mcp_servers import academic_schedule, campus_services
+
+logger = logging.getLogger(__name__)
 
 
 class InMemoryMCPBridge:
@@ -22,6 +29,27 @@ class InMemoryMCPBridge:
             "github_assignment_check": campus_services.github_assignment_check,
             "find_campus_place": campus_services.find_campus_place,
         }
+        self._argument_models: dict[str, type[BaseModel]] = {}
+        for name, fn in self._tools.items():
+            hints = get_type_hints(fn)
+            fields = {
+                key: (hints[key], ... if p.default is inspect.Parameter.empty else p.default)
+                for key, p in inspect.signature(fn).parameters.items()
+            }
+            self._argument_models[name] = create_model(
+                f"{name}Arguments", __config__=ConfigDict(extra="forbid", strict=True), **fields
+            )
+
+    def get_tools(self) -> list[types.Tool]:
+        """Declare exactly the arguments validated by the dispatcher."""
+        return [types.Tool(function_declarations=[
+            types.FunctionDeclaration(
+                name=name,
+                description=inspect.getdoc(fn) or name,
+                parameters_json_schema=self._argument_models[name].model_json_schema(),
+            )
+            for name, fn in self._tools.items()
+        ])]
 
     @property
     def tool_names(self) -> List[str]:
@@ -52,8 +80,10 @@ class InMemoryMCPBridge:
             }
 
         fn = self._tools[name]
-        safe_args = dict(args) if isinstance(args, dict) else {}
         try:
+            safe_args = self._argument_models[name].model_validate(
+                {} if args is None else args
+            ).model_dump()
             result = fn(**safe_args)
             if isinstance(result, dict) and "ok" in result and "source" in result:
                 return result
@@ -66,11 +96,20 @@ class InMemoryMCPBridge:
                 "elapsed_ms": elapsed_ms,
             }
         except Exception as exc:
+            logger.warning("Tool %s failed (%s)", name, type(exc).__name__)
+            error = (
+                "Invalid tool arguments: " + "; ".join(
+                    f"{'.'.join(map(str, item['loc']))}: {item['type']}"
+                    for item in exc.errors(include_input=False, include_url=False)
+                )
+                if isinstance(exc, ValidationError)
+                else f"Tool execution failed ({type(exc).__name__})."
+            )
             elapsed_ms = max(0, int((time.perf_counter_ns() - start_ns) / 1_000_000))
             return {
                 "ok": False,
                 "data": None,
-                "error": f"Tool error in '{name}': {exc}",
+                "error": error,
                 "source": "live",
                 "elapsed_ms": elapsed_ms,
             }

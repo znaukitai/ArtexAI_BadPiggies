@@ -17,8 +17,8 @@ from agent.artex_agent import ArtexAgent
 DEPLOY_RECORD_PATH = PROJECT_ROOT / ".deploy" / "resource_name.txt"
 
 CLOUD_REQUIREMENTS = [
-    "pydantic==2.10.6",
-    "google-genai>=1.5.0,<2",
+    "pydantic==2.14.1",
+    "google-genai==1.75.0",
     "google-cloud-aiplatform[agent_engines,reasoningengine]>=1.79.0",
     "mcp>=1.3.0",
     "fastmcp>=0.4.1",

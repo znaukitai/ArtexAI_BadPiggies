@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent.artex_agent import ArtexAgent, is_unrecognized_or_offtopic
+from agent.artex_agent import ArtexAgent
 from agent.models import AgentResponse
 from frontend.gateway import Gateway
 
@@ -29,7 +29,7 @@ def _make_mock_response(text: str = "", function_calls: list | None = None) -> S
 def test_agent_reasoning_loop_tool_call_and_final() -> None:
     agent = ArtexAgent(model="gemini-3.8-flash", max_steps=6)
     agent._bridge = MagicMock()
-    agent._bridge.get_callable_tools.return_value = []
+    agent._bridge.get_tools.return_value = []
     agent._bridge.export_state_after_query.return_value = {"deadlines": []}
     agent._bridge.call_tool.side_effect = [
         {
@@ -93,7 +93,7 @@ def test_agent_reasoning_loop_tool_call_and_final() -> None:
 def test_agent_loop_respects_max_steps_guard() -> None:
     agent = ArtexAgent(model="gemini-3.8-flash", max_steps=2)
     agent._bridge = MagicMock()
-    agent._bridge.get_callable_tools.return_value = []
+    agent._bridge.get_tools.return_value = []
     agent._bridge.export_state_after_query.return_value = {"deadlines": []}
     agent._bridge.call_tool.return_value = {
         "ok": True,
@@ -118,41 +118,6 @@ def test_agent_loop_respects_max_steps_guard() -> None:
     validated = AgentResponse.model_validate(res)
     assert validated.steps[-1].type == "error"
     assert "max_steps" in (validated.steps[-1].thought or "")
-
-
-@pytest.mark.parametrize(
-    "bad_input",
-    [
-        "аывджадв",
-        "   ",
-        "?",
-        "привет",
-        "расскажи анекдот",
-        "what is the weather",
-        "x" * 5000,
-    ],
-)
-def test_unrecognized_or_offtopic_returns_help_without_tools(bad_input: str) -> None:
-    assert is_unrecognized_or_offtopic(bad_input) is True
-    gw = Gateway("local", api_key="")
-    res = gw.query(bad_input, {"deadlines": []})
-    if bad_input == "привет":
-        assert "Привет" in res.answer and "Не понял запрос" not in res.answer
-        assert "дедлайнами" in res.answer
-    else:
-        assert "Не понял запрос" in res.answer
-    assert res.meta.get("tool_calls", 0) == 0
-    assert len(res.steps) == 0
-
-
-def test_valid_deadline_query_triggers_tools() -> None:
-    gw = Gateway("local", api_key="")
-    res = gw.query("Что горит на этой неделе и с чего начать?", {"deadlines": []})
-    assert "Не понял запрос" not in res.answer
-    assert res.meta.get("tool_calls", 0) >= 2
-    tool_names = [s.name for s in res.steps if s.type == "tool_call"]
-    assert "get_today" in tool_names
-    assert "list_deadlines" in tool_names
 
 
 def test_invalid_api_key_reports_explicit_error_without_silent_fallback() -> None:

@@ -13,10 +13,7 @@ def test_room_aliases_match_real_records(query):
     assert result["source"] == "demo"
     assert result["data"]["locations"]
     assert all("226" in loc["code"] and loc["floor"] and loc["block"] for loc in result["data"]["locations"])
-    response = LocalBackend(mode="demo").query(query, {"deadlines": []})
-    assert "Не понял" not in response.answer
-    assert "DEMO" in response.answer
-    assert any(step.name == "find_campus_place" for step in response.steps)
+
 
 
 def test_missing_room_has_suggestions():
