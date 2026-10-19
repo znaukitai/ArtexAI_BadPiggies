@@ -87,6 +87,9 @@ def run_streamlit_worker(app_path: str, port: int) -> int:
 
 
 def main() -> int:
+    if not getattr(sys, "frozen", False) and sys.version_info[:2] != (3, 12):
+        print("Artex AI требует Python 3.12. Создайте окружение: py -3.12 -m venv .venv", file=sys.stderr)
+        return 1
     root = resolve_app_root()
     os.chdir(root)
     if str(root) not in sys.path:

@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-GITHUB_REPO = os.environ.get("ARTEX_RELEASE_REPO", "znaukitai/Artex-AI")
+GITHUB_REPO = os.environ.get("ARTEX_RELEASE_REPO", "znaukitai/CampusPulseAI_BadPiggies")
 RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 
@@ -68,7 +68,7 @@ def download_and_install(install_dir: Path) -> Path:
         release_data = json.loads(resp.read().decode("utf-8"))
 
     assets = release_data.get("assets", [])
-    zip_asset = next((a for a in assets if str(a.get("name", "")).endswith(".zip")), None)
+    zip_asset = next((a for a in assets if a.get("name") == "ArtexAI-win64.zip"), None)
     exe_asset = next(
         (
             a
@@ -94,7 +94,7 @@ def download_and_install(install_dir: Path) -> Path:
         print(f"[Artex AI Setup] Скачивание {exe_asset['name']} ...")
         urllib.request.urlretrieve(dl_url, str(install_dir / "ArtexAI.exe"))
     else:
-        raise RuntimeError("В последнем релизе GitHub не найден архив ArtexAI-win64.zip или ArtexAI.exe.")
+        raise RuntimeError("В последнем релизе GitHub не найден ArtexAI-win64.zip. Попросите владельца выпустить обновлённую сборку.")
 
     exe_path = install_dir / "ArtexAI.exe"
     if not exe_path.exists():
@@ -102,6 +102,8 @@ def download_and_install(install_dir: Path) -> Path:
         if nested:
             exe_path = nested[0]
 
+    if not exe_path.is_file():
+        raise RuntimeError("В загруженном релизе отсутствует ArtexAI.exe; ярлыки не созданы.")
     create_windows_shortcuts(exe_path)
     return exe_path
 
